@@ -8,171 +8,187 @@ import { toast } from '../lib/toast';
 import { isSoundEnabled, setSoundEnabled, playSound } from '../lib/sound';
 import { Download, Archive, Trash2, Upload, X, Tag, Smartphone, ShieldCheck, HelpCircle, Volume2, VolumeX, Sparkles, Check } from 'lucide-react';
 
+const RAISED    = '7px 7px 16px rgba(163,177,198,0.55), -7px -7px 16px rgba(255,255,255,0.85)';
+const RAISED_SM = '5px 5px 12px rgba(163,177,198,0.55), -5px -5px 12px rgba(255,255,255,0.85)';
+const INSET     = 'inset 5px 5px 10px rgba(163,177,198,0.55), inset -5px -5px 10px rgba(255,255,255,0.85)';
+const INSET_SM  = 'inset 3px 3px 7px rgba(163,177,198,0.55), inset -3px -3px 7px rgba(255,255,255,0.85)';
+const BASE = '#e6e9ef';
+const H1   = '#2f3542';
+const H2   = '#5b6272';
+const H3   = '#8991a0';
+const ACC  = '#1a9e75';
+
+const inputSt: React.CSSProperties = {
+  background: BASE, boxShadow: INSET, border: 'none', color: H1,
+  borderRadius: 9999, padding: '10px 16px', fontSize: '0.73rem', fontWeight: 600
+};
+
+function SectionCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      {/* Raised square icon container */}
+      <span style={{ width: 42, height: 42, borderRadius: 16, background: BASE, boxShadow: RAISED_SM, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {icon}
+      </span>
+      <div>
+        <h3 className="text-sm font-extrabold" style={{ color: H1 }}>{title}</h3>
+        <p className="text-[11px] font-medium" style={{ color: H3 }}>{sub}</p>
+      </div>
+    </div>
+  );
+}
+
 export function SettingsView() {
   const { custom, addRule, removeRule } = useRules();
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const counts = useLiveQuery(async () => {
-    const [txns, batches] = await Promise.all([
-      db.transactions.count(),
-      db.importBatches.toArray()
-    ]);
+    const [txns, batches] = await Promise.all([db.transactions.count(), db.importBatches.toArray()]);
     return { txns, batches };
   }, []);
 
-  const [kw, setKw] = useState('');
+  const [kw,  setKw]  = useState('');
   const [cat, setCat] = useState<string>(CATEGORIES[0]);
   const [restoreRef, setRestoreRef] = useState<HTMLInputElement | null>(null);
 
-  const inputCls =
-    'neu-input rounded-full px-4 py-2.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none';
-
   const add = async () => {
     const ok = await addRule(kw, cat);
-    if (ok) {
-      setKw('');
-      toast('Rule added', 'success');
-    } else {
-      toast('That keyword already exists', 'error');
-    }
+    if (ok) { setKw(''); toast('Rule added', 'success'); }
+    else toast('That keyword already exists', 'error');
   };
 
   const toggleSound = () => {
     const next = !soundOn;
     setSoundOn(next);
     setSoundEnabled(next);
-    if (next) {
-      playSound('success');
-      toast('Sound effects enabled', 'success');
-    } else {
-      toast('Sound effects muted', 'info');
-    }
+    if (next) { playSound('success'); toast('Sound effects enabled', 'success'); }
+    else toast('Sound effects muted', 'info');
   };
 
   return (
     <div className="space-y-5">
-      {/* Sound & Haptics Section: Neumorphic iOS toggle switch with vivid accent highlight */}
-      <section className="neu-card rounded-[30px] p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-700">
-            {soundOn ? <Volume2 size={17} strokeWidth={2.2} /> : <VolumeX size={17} strokeWidth={2.2} />}
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-800 tracking-tight">Sound & feedback</h3>
-            <p className="text-[11px] font-medium text-slate-400">Tactile acoustic feedback on interactions</p>
-          </div>
-        </div>
+      {/* ── Sound & Feedback ── */}
+      <SectionCard>
+        <SectionHeader
+          icon={soundOn ? <Volume2 size={17} strokeWidth={2} style={{ color: H2 }} /> : <VolumeX size={17} strokeWidth={2} style={{ color: H3 }} />}
+          title="Sound & feedback"
+          sub="Tactile acoustic feedback on interactions"
+        />
 
-        <div className="neu-card-sm rounded-[24px] p-4 flex items-center justify-between">
+        {/* Toggle row */}
+        <div style={{ background: BASE, borderRadius: 20, boxShadow: RAISED_SM, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p className="text-xs font-bold text-slate-800">Button Click Sounds</p>
-            <p className="text-[11px] font-medium text-slate-400">Acoustic click on taps and navigations</p>
+            <p className="text-xs font-bold" style={{ color: H1 }}>Button Click Sounds</p>
+            <p className="text-[11px] font-medium" style={{ color: H3 }}>Acoustic click on taps and navigations</p>
           </div>
 
-          {/* Inset track switch with vivid accent "ON" state */}
+          {/* iOS toggle: inset track, raised/accent thumb */}
           <button
             type="button"
             onClick={toggleSound}
             data-sound="pop"
-            className="neu-inset h-8 w-14 rounded-full p-1 flex items-center transition-all cursor-pointer"
-            aria-label="Toggle button sounds"
+            aria-label="Toggle sounds"
+            style={{
+              width: 52, height: 30, borderRadius: 20,
+              background: BASE, boxShadow: INSET_SM,
+              border: 'none', padding: 4, display: 'flex',
+              alignItems: 'center', cursor: 'pointer', flexShrink: 0
+            }}
           >
-            <div
-              className={`h-6 w-6 rounded-full transition-transform duration-200 flex items-center justify-center ${
-                soundOn
-                  ? 'translate-x-6 bg-[#ff5238] text-white shadow-sm'
-                  : 'translate-x-0 neu-btn text-slate-400'
-              }`}
-            >
-              {soundOn && <Check size={12} strokeWidth={3} />}
+            <div style={{
+              width: 22, height: 22, borderRadius: 9999,
+              background: soundOn ? ACC : BASE,
+              boxShadow: soundOn
+                ? '2px 2px 6px rgba(26,158,117,0.35), -1px -1px 4px rgba(255,255,255,0.85)'
+                : RAISED_SM,
+              transform: soundOn ? 'translateX(22px)' : 'translateX(0)',
+              transition: 'all 0.22s ease',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              {soundOn && <Check size={11} color="#fff" strokeWidth={3} />}
             </div>
           </button>
         </div>
 
+        {/* Preview row */}
         {soundOn && (
-          <div className="neu-inset rounded-2xl px-4 py-3 flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1.5 text-slate-500 font-medium text-[11px]">
-              <Sparkles size={13} className="text-[#ff5238]" /> Preview:
+          <div style={{ background: BASE, borderRadius: 16, boxShadow: INSET_SM, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: H2 }}>
+              <Sparkles size={12} style={{ color: ACC }} /> Preview:
             </span>
             <div className="flex gap-2">
-              <button
-                onClick={() => playSound('tap')}
-                className="neu-btn rounded-full px-3 py-1 text-[11px] font-bold text-slate-700"
-              >
-                Tap
-              </button>
-              <button
-                onClick={() => playSound('pop')}
-                className="neu-btn rounded-full px-3 py-1 text-[11px] font-bold text-slate-700"
-              >
-                Pop
-              </button>
-              <button
-                onClick={() => playSound('success')}
-                className="neu-btn rounded-full px-3 py-1 text-[11px] font-bold text-[#ff5238]"
-              >
-                Chime
-              </button>
+              {(['tap', 'pop', 'success'] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => playSound(s)}
+                  style={{ background: BASE, borderRadius: 9999, boxShadow: RAISED_SM, border: 'none', padding: '5px 12px', fontSize: '0.68rem', fontWeight: 700, color: s === 'success' ? ACC : H2 }}
+                >
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      {/* Auto-category rules */}
-      <section className="neu-card rounded-[30px] p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-700">
-            <Tag size={17} strokeWidth={2.2} />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-800 tracking-tight">Auto-category rules</h3>
-            <p className="text-[11px] font-medium text-slate-400">Keyword merchant matchers</p>
-          </div>
-        </div>
-
-        <p className="text-xs text-slate-500 font-medium leading-relaxed">
-          When importing, transactions are categorised by matching keywords in the description. Add custom rules for frequent merchants.
+      {/* ── Auto-category rules ── */}
+      <SectionCard>
+        <SectionHeader
+          icon={<Tag size={17} strokeWidth={2} style={{ color: H2 }} />}
+          title="Auto-category rules"
+          sub="Keyword merchant matchers"
+        />
+        <p className="text-xs font-medium leading-relaxed mb-4" style={{ color: H2 }}>
+          When importing, transactions are categorised by matching keywords. Add your own rules for frequent merchants.
         </p>
 
-        <div className="flex gap-2">
+        {/* Add rule row */}
+        <div className="flex gap-2 mb-4">
           <input
-            className={inputCls + ' flex-1'}
+            style={{ ...inputSt, flex: 1 }}
+            className="focus:outline-none placeholder:text-[#8991a0]"
             placeholder="e.g. Swiggy, DMart"
             value={kw}
             onChange={(e) => setKw(e.target.value)}
           />
-          <select className={inputCls} value={cat} onChange={(e) => setCat(e.target.value)}>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c} className="bg-[#eef1f5]">
-                {c}
-              </option>
-            ))}
+          <select
+            style={inputSt}
+            className="focus:outline-none"
+            value={cat}
+            onChange={(e) => setCat(e.target.value)}
+          >
+            {CATEGORIES.map((c) => <option key={c} value={c} style={{ background: BASE }}>{c}</option>)}
           </select>
           <button
             onClick={add}
             data-sound="pop"
-            className="neu-accent-btn rounded-full px-5 text-xs font-bold uppercase tracking-wider text-white"
+            className="neu-btn-accent"
+            style={{ borderRadius: 9999, padding: '10px 18px', fontSize: '0.72rem', fontWeight: 700 }}
           >
             Add
           </button>
         </div>
 
         {custom.length > 0 ? (
-          <ul className="space-y-2 pt-1">
+          <ul className="space-y-2">
             {custom.map((r) => (
-              <li
-                key={r.keyword}
-                className="neu-card-sm flex items-center justify-between rounded-2xl px-4 py-3 text-xs"
-              >
-                <span className="text-slate-800 font-semibold">
-                  <span>{r.keyword}</span>
-                  <span className="mx-2 text-slate-400 font-normal">→</span>
-                  <span className="text-slate-600 font-bold">{r.category}</span>
+              <li key={r.keyword} style={{ background: BASE, borderRadius: 16, boxShadow: RAISED_SM, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', color: H1, fontWeight: 600 }}>
+                  {r.keyword}
+                  <span style={{ color: H3, margin: '0 8px' }}>→</span>
+                  <span style={{ color: ACC, fontWeight: 700 }}>{r.category}</span>
                 </span>
                 <button
                   onClick={() => removeRule(r.keyword)}
                   data-sound="delete"
-                  className="neu-btn-circle flex h-7 w-7 items-center justify-center text-slate-400 hover:text-[#ff5238]"
-                  title="Remove rule"
+                  style={{ width: 28, height: 28, borderRadius: 9999, background: BASE, boxShadow: RAISED_SM, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: H3 }}
                 >
                   <X size={13} strokeWidth={2.4} />
                 </button>
@@ -180,138 +196,83 @@ export function SettingsView() {
             ))}
           </ul>
         ) : (
-          <div className="neu-inset rounded-2xl p-4 text-center text-xs font-medium text-slate-400">
-            No custom rules defined yet.
+          <div style={{ background: BASE, borderRadius: 16, boxShadow: INSET, padding: '1rem', textAlign: 'center' }}>
+            <span className="text-xs font-medium" style={{ color: H3 }}>No custom rules defined yet.</span>
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      {/* Backup & Data Section */}
-      <section className="neu-card rounded-[30px] p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-700">
-            <Archive size={17} strokeWidth={2.2} />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-800 tracking-tight">Backup & data</h3>
-            <p className="text-[11px] font-medium text-slate-400">
-              {counts ? `${counts.txns} transactions across ${counts.batches.length} imports` : 'Offline storage'}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          <button
-            onClick={() => {
-              void exportCsv();
-              toast('CSV downloaded', 'success');
-            }}
-            data-sound="pop"
-            className="neu-btn flex flex-col items-center justify-center gap-2 rounded-2xl p-4 text-xs font-bold text-slate-700"
-          >
-            <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-600">
-              <Download size={16} strokeWidth={2.2} />
-            </div>
-            Export CSV
-          </button>
-
-          <button
-            onClick={() => {
-              void exportBackup();
-              toast('Backup downloaded', 'success');
-            }}
-            data-sound="pop"
-            className="neu-btn flex flex-col items-center justify-center gap-2 rounded-2xl p-4 text-xs font-bold text-slate-700"
-          >
-            <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-600">
-              <Archive size={16} strokeWidth={2.2} />
-            </div>
-            Backup JSON
-          </button>
-
-          <button
-            onClick={() => restoreRef?.click()}
-            data-sound="pop"
-            className="neu-btn flex flex-col items-center justify-center gap-2 rounded-2xl p-4 text-xs font-bold text-slate-700"
-          >
-            <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-600">
-              <Upload size={16} strokeWidth={2.2} />
-            </div>
-            Restore backup
-          </button>
-
-          <button
-            onClick={() => {
-              if (window.confirm('Delete ALL transactions, rules and imports on this phone? This cannot be undone.')) {
-                void wipeAll().then(() => toast('All data erased', 'success'));
-              }
-            }}
-            data-sound="delete"
-            className="neu-btn flex flex-col items-center justify-center gap-2 rounded-2xl p-4 text-xs font-bold text-[#ff5238]"
-          >
-            <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-[#ff5238]">
-              <Trash2 size={16} strokeWidth={2.2} />
-            </div>
-            Erase all data
-          </button>
-        </div>
-
-        <input
-          ref={setRestoreRef}
-          type="file"
-          accept=".json"
-          className="hidden"
-          onChange={async (e) => {
-            const f = e.target.files?.[0];
-            e.target.value = '';
-            if (!f) return;
-            try {
-              const r = await restoreBackup(f);
-              toast(`Restored ${r.transactions} transactions`, 'success');
-            } catch (err) {
-              console.error(err);
-              toast('That is not a valid backup file', 'error');
-            }
-          }}
+      {/* ── Backup & Data ── */}
+      <SectionCard>
+        <SectionHeader
+          icon={<Archive size={17} strokeWidth={2} style={{ color: H2 }} />}
+          title="Backup & data"
+          sub={counts ? `${counts.txns} transactions across ${counts.batches.length} imports` : 'Offline storage'}
         />
-      </section>
 
-      {/* Install & privacy */}
-      <section className="neu-card rounded-[30px] p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-700">
-            <Smartphone size={17} strokeWidth={2.2} />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-800 tracking-tight">Install & privacy</h3>
-            <p className="text-[11px] font-medium text-slate-400">100% on-device private PWA</p>
-          </div>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Regular actions: raised buttons with icon square */}
+          {[
+            { label: 'Export CSV',     icon: <Download size={16} strokeWidth={2} style={{ color: H2 }} />, danger: false, action: () => { void exportCsv(); toast('CSV downloaded', 'success'); }, sound: 'pop' },
+            { label: 'Backup JSON',    icon: <Archive  size={16} strokeWidth={2} style={{ color: H2 }} />, danger: false, action: () => { void exportBackup(); toast('Backup downloaded', 'success'); }, sound: 'pop' },
+            { label: 'Restore backup', icon: <Upload   size={16} strokeWidth={2} style={{ color: H2 }} />, danger: false, action: () => restoreRef?.click(), sound: 'pop' },
+            { label: 'Erase all data', icon: <Trash2   size={16} strokeWidth={2} style={{ color: '#dc2626' }} />, danger: true,
+              action: () => { if (window.confirm('Delete ALL transactions, rules and imports on this phone? This cannot be undone.')) void wipeAll().then(() => toast('All data erased', 'success')); },
+              sound: 'delete' }
+          ].map(({ label, icon, danger, action, sound }) => (
+            <button
+              key={label}
+              onClick={action}
+              data-sound={sound}
+              style={{
+                background: BASE, borderRadius: 20,
+                boxShadow: RAISED_SM, border: 'none',
+                padding: '1rem', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: '0.5rem',
+                fontSize: '0.72rem', fontWeight: 700,
+                color: danger ? '#dc2626' : H2
+              }}
+            >
+              <span style={{ width: 36, height: 36, borderRadius: 12, background: BASE, boxShadow: RAISED_SM, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {icon}
+              </span>
+              {label}
+            </button>
+          ))}
         </div>
 
-        <div className="space-y-3.5 text-xs font-medium text-slate-500 leading-relaxed">
-          <p className="flex items-start gap-3">
-            <Smartphone size={15} className="mt-0.5 shrink-0 text-slate-400" />
-            <span>
-              On iOS: open in <b>Safari</b>, tap <b>Share</b>, then <b>Add to Home Screen</b> for standalone offline usage.
-            </span>
-          </p>
-          <p className="flex items-start gap-3">
-            <ShieldCheck size={15} className="mt-0.5 shrink-0 text-[#ff5238]" />
-            <span>
-              Transactions reside strictly in client IndexedDB. No accounts, telemetry, or remote servers.
-            </span>
-          </p>
-          <p className="flex items-start gap-3">
-            <HelpCircle size={15} className="mt-0.5 shrink-0 text-slate-400" />
-            <span>
-              Get PDF statement: GPay app → profile → Transaction history → <b>⋮</b> → Get statement.
-            </span>
-          </p>
-        </div>
-      </section>
+        <input ref={setRestoreRef} type="file" accept=".json" className="hidden"
+          onChange={async (e) => {
+            const f = e.target.files?.[0]; e.target.value = '';
+            if (!f) return;
+            try { const r = await restoreBackup(f); toast(`Restored ${r.transactions} transactions`, 'success'); }
+            catch (err) { console.error(err); toast('That is not a valid backup file', 'error'); }
+          }} />
+      </SectionCard>
 
-      <p className="pb-4 text-center text-[11px] font-semibold text-slate-400">
-        UPI Ledger · iOS Soft Neumorphism Edition
+      {/* ── Install & Privacy ── */}
+      <SectionCard>
+        <SectionHeader
+          icon={<Smartphone size={17} strokeWidth={2} style={{ color: H2 }} />}
+          title="Install & privacy"
+          sub="100% on-device private PWA"
+        />
+        <div className="space-y-3.5">
+          {[
+            { icon: <Smartphone size={15} strokeWidth={2} style={{ color: H3 }} />, text: <>On iOS: open in <b>Safari</b>, tap <b>Share</b>, then <b>Add to Home Screen</b> for standalone offline usage.</> },
+            { icon: <ShieldCheck size={15} strokeWidth={2} style={{ color: ACC }} />, text: <>Transactions reside strictly in client IndexedDB. No accounts, telemetry, or remote servers.</> },
+            { icon: <HelpCircle  size={15} strokeWidth={2} style={{ color: H3 }} />, text: <>Get PDF: GPay app → profile → Transaction history → <b>⋮</b> → Get statement.</> }
+          ].map(({ icon, text }, idx) => (
+            <p key={idx} className="flex items-start gap-3 text-xs leading-relaxed font-medium" style={{ color: H2 }}>
+              <span style={{ flexShrink: 0, marginTop: 1 }}>{icon}</span>
+              <span>{text}</span>
+            </p>
+          ))}
+        </div>
+      </SectionCard>
+
+      <p className="pb-4 text-center text-[11px] font-semibold" style={{ color: H3 }}>
+        UPI Ledger · Light Neumorphism
       </p>
     </div>
   );

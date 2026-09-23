@@ -6,225 +6,281 @@ body,
   height: 100%;
 }
 
+/* =========================================================
+   LIGHT NEUMORPHISM — UPI LEDGER
+   Base: #e6e9ef
+   Raised: 7px 7px 16px rgba(163,177,198,.55), -7px -7px 16px rgba(255,255,255,.85)
+   Inset:  inset 7px 7px 16px rgba(163,177,198,.55), inset -7px -7px 16px rgba(255,255,255,.85)
+   Accent: #1a9e75  |  Danger: #dc2626
+   ========================================================= */
+
 :root {
-  --neu-base: #eef1f5;
-  --neu-dark-shadow: rgba(166, 178, 196, 0.48);
-  --neu-light-shadow: #ffffff;
-  --neu-inset-dark: rgba(166, 178, 196, 0.45);
-  --neu-inset-light: #ffffff;
-  --neu-accent: #ff5238;
-  --neu-accent-glow: rgba(255, 82, 56, 0.35);
+  --b:   #e6e9ef;          /* single base color — everything shares this */
+  --sd:  rgba(163,177,198,0.55);   /* dark shadow component  */
+  --sl:  rgba(255,255,255,0.85);   /* light shadow component */
+  --acc: #1a9e75;          /* emerald green accent */
+  --acc-dim: rgba(26,158,117,0.25);
+  --danger: #dc2626;
+  --h1:  #2f3542;          /* heading text */
+  --h2:  #5b6272;          /* secondary / label text */
+  --h3:  #8991a0;          /* placeholder / muted text */
 }
 
 body {
-  background-color: var(--neu-base);
-  color: #334155;
+  background-color: var(--b);
+  color: var(--h1);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ==========================================================================
-   SOFT NEUMORPHISM (FINTECH / BANKING iOS SPEC)
-   ========================================================================== */
-
-/* Flat base color */
-.neu-bg {
-  background-color: var(--neu-base);
-}
-
-/* Soft extruded cards: 28-32px border radius, gentle dual diffused shadow */
+/* ── Cards & Panels ────────────────────────────────────── */
 .neu-card {
-  background-color: var(--neu-base);
+  background: var(--b);
   border-radius: 30px;
-  box-shadow: 10px 10px 24px var(--neu-dark-shadow), -10px -10px 24px var(--neu-light-shadow);
+  box-shadow: 7px 7px 16px var(--sd), -7px -7px 16px var(--sl);
   border: none;
 }
 
 .neu-card-sm {
-  background-color: var(--neu-base);
-  border-radius: 26px;
-  box-shadow: 7px 7px 18px var(--neu-dark-shadow), -7px -7px 18px var(--neu-light-shadow);
+  background: var(--b);
+  border-radius: 20px;
+  box-shadow: 5px 5px 12px var(--sd), -5px -5px 12px var(--sl);
   border: none;
 }
 
-/* Soft extruded disc (for circular cards, donut chart beds) */
 .neu-card-disc {
-  background-color: var(--neu-base);
+  background: var(--b);
   border-radius: 9999px;
-  box-shadow: 8px 8px 22px var(--neu-dark-shadow), -8px -8px 22px var(--neu-light-shadow);
+  box-shadow: 7px 7px 16px var(--sd), -7px -7px 16px var(--sl);
   border: none;
 }
 
-/* Inset (pressed-in) shadows for input tracks, progress grooves, OFF toggle states */
+/* ── Inset (pressed-in) surfaces ───────────────────────── */
 .neu-inset {
-  background-color: var(--neu-base);
-  box-shadow: inset 4px 4px 8px var(--neu-inset-dark), inset -4px -4px 8px var(--neu-inset-light);
+  background: var(--b);
+  box-shadow: inset 5px 5px 10px var(--sd), inset -5px -5px 10px var(--sl);
   border: none;
 }
 
-.neu-inset-deep {
-  background-color: var(--neu-base);
-  box-shadow: inset 5px 5px 10px var(--neu-inset-dark), inset -5px -5px 10px var(--neu-inset-light);
+.neu-inset-sm {
+  background: var(--b);
+  box-shadow: inset 3px 3px 7px var(--sd), inset -3px -3px 7px var(--sl);
   border: none;
 }
 
-/* Inset inputs and search controls */
+/* ── Inputs / search bars ──────────────────────────────── */
 .neu-input {
-  background-color: var(--neu-base);
-  box-shadow: inset 4px 4px 8px var(--neu-inset-dark), inset -4px -4px 8px var(--neu-inset-light);
+  background: var(--b);
+  box-shadow: inset 5px 5px 10px var(--sd), inset -5px -5px 10px var(--sl);
   border: none;
-  color: #1e293b;
-  transition: box-shadow 0.2s ease;
+  color: var(--h1);
+  transition: box-shadow 0.18s ease;
 }
+
+.neu-input::placeholder { color: var(--h3); }
 
 .neu-input:focus {
   outline: none;
-  box-shadow: inset 5px 5px 9px var(--neu-inset-dark), inset -5px -5px 9px var(--neu-inset-light), 0 0 0 1.5px rgba(255, 82, 56, 0.45);
+  box-shadow: inset 6px 6px 11px var(--sd), inset -6px -6px 11px var(--sl),
+              0 0 0 1.5px rgba(26,158,117,0.4);
 }
 
-/* Standard soft extruded buttons */
+/* ── Standard raised buttons ───────────────────────────── */
 .neu-btn {
-  background-color: var(--neu-base);
-  box-shadow: 5px 5px 14px var(--neu-dark-shadow), -5px -5px 14px var(--neu-light-shadow);
+  background: var(--b);
+  box-shadow: 5px 5px 12px var(--sd), -5px -5px 12px var(--sl);
   border: none;
   user-select: none;
-  transition: all 0.15s ease;
+  transition: box-shadow 0.14s ease, transform 0.14s ease;
 }
 
 .neu-btn:hover {
-  box-shadow: 6px 6px 16px var(--neu-dark-shadow), -6px -6px 16px var(--neu-light-shadow);
+  box-shadow: 6px 6px 14px var(--sd), -6px -6px 14px var(--sl);
 }
 
 .neu-btn:active {
-  box-shadow: inset 3px 3px 6px var(--neu-inset-dark), inset -3px -3px 6px var(--neu-inset-light);
+  box-shadow: inset 4px 4px 8px var(--sd), inset -4px -4px 8px var(--sl);
   transform: translateY(1px);
 }
 
-/* Circular soft icon buttons */
-.neu-btn-circle {
-  background-color: var(--neu-base);
-  border-radius: 9999px;
-  box-shadow: 5px 5px 13px var(--neu-dark-shadow), -5px -5px 13px var(--neu-light-shadow);
+/* ── Circular icon containers / buttons ────────────────── */
+.neu-icon {
+  background: var(--b);
+  border-radius: 16px;
+  box-shadow: 5px 5px 12px var(--sd), -5px -5px 12px var(--sl);
   border: none;
-  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.neu-icon-circle {
+  background: var(--b);
+  border-radius: 9999px;
+  box-shadow: 5px 5px 12px var(--sd), -5px -5px 12px var(--sl);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: box-shadow 0.14s ease, transform 0.14s ease;
   user-select: none;
 }
 
-.neu-btn-circle:hover {
-  box-shadow: 6px 6px 16px var(--neu-dark-shadow), -6px -6px 16px var(--neu-light-shadow);
+.neu-icon-circle:hover {
+  box-shadow: 6px 6px 14px var(--sd), -6px -6px 14px var(--sl);
 }
 
-.neu-btn-circle:active {
-  box-shadow: inset 3px 3px 6px var(--neu-inset-dark), inset -3px -3px 6px var(--neu-inset-light);
+.neu-icon-circle:active {
+  box-shadow: inset 3px 3px 7px var(--sd), inset -3px -3px 7px var(--sl);
   transform: translateY(1px);
 }
 
-/* Soft extruded segmented pills */
+/* ── Pills (filter chips, segments) ───────────────────── */
 .neu-pill {
-  background-color: var(--neu-base);
+  background: var(--b);
   border-radius: 9999px;
-  box-shadow: 4px 4px 10px var(--neu-dark-shadow), -4px -4px 10px var(--neu-light-shadow);
+  box-shadow: 4px 4px 10px var(--sd), -4px -4px 10px var(--sl);
   border: none;
-  transition: all 0.15s ease;
+  color: var(--h2);
+  transition: box-shadow 0.14s ease, color 0.14s ease;
+  user-select: none;
 }
+
+.neu-pill:hover { color: var(--h1); }
 
 .neu-pill:active {
-  box-shadow: inset 3px 3px 6px var(--neu-inset-dark), inset -3px -3px 6px var(--neu-inset-light);
+  box-shadow: inset 3px 3px 7px var(--sd), inset -3px -3px 7px var(--sl);
 }
 
+/* Active/selected pill: inset + accent text */
 .neu-pill-active {
-  background-color: var(--neu-base);
+  background: var(--b);
   border-radius: 9999px;
-  box-shadow: inset 4px 4px 8px var(--neu-inset-dark), inset -4px -4px 8px var(--neu-inset-light);
+  box-shadow: inset 4px 4px 8px var(--sd), inset -4px -4px 8px var(--sl);
   border: none;
-  color: var(--neu-accent);
+  color: var(--acc);
+  font-weight: 700;
 }
 
-/* Floating bottom nav bar: a floating rounded pill containing soft circular icon buttons */
+/* ── Bottom nav floating pill ─────────────────────────── */
 .neu-float-nav {
-  background-color: rgba(238, 241, 245, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(230,233,239,0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: 9999px;
-  box-shadow: 8px 8px 24px var(--neu-dark-shadow), -8px -8px 24px var(--neu-light-shadow);
+  box-shadow: 7px 7px 18px var(--sd), -7px -7px 18px var(--sl);
   border: none;
 }
 
-/* ONE vivid accent color (orange/coral red) reserved only for key actions & highlights */
-.neu-accent-btn {
-  background-color: var(--neu-accent);
+/* ── Accent CTA buttons ────────────────────────────────── */
+.neu-btn-accent {
+  background: var(--acc);
   color: #ffffff;
   border-radius: 9999px;
-  box-shadow: 6px 6px 18px var(--neu-accent-glow), -5px -5px 14px var(--neu-light-shadow);
+  box-shadow: 6px 6px 16px var(--acc-dim), -5px -5px 12px var(--sl);
   border: none;
   user-select: none;
-  transition: all 0.15s ease;
+  transition: box-shadow 0.14s ease, transform 0.14s ease;
 }
 
-.neu-accent-btn:hover {
-  box-shadow: 7px 7px 20px rgba(255, 82, 56, 0.45), -6px -6px 16px var(--neu-light-shadow);
+.neu-btn-accent:hover {
+  box-shadow: 7px 7px 18px var(--acc-dim), -6px -6px 14px var(--sl);
 }
 
-.neu-accent-btn:active {
-  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.25), inset -2px -2px 5px rgba(255, 255, 255, 0.3);
+.neu-btn-accent:active {
+  box-shadow: inset 4px 4px 8px rgba(0,0,0,0.22), inset -3px -3px 6px rgba(255,255,255,0.25);
   transform: translateY(1px);
 }
 
-/* Small circular accent button/disc (e.g. center of donut chart, FAB, active controls) */
-.neu-accent-circle {
-  background-color: var(--neu-accent);
+/* ── Accent circle (donut centre, key highlight discs) ── */
+.neu-acc-circle {
+  background: var(--acc);
   color: #ffffff;
   border-radius: 9999px;
-  box-shadow: 5px 5px 15px var(--neu-accent-glow), -4px -4px 12px var(--neu-light-shadow);
+  box-shadow: 5px 5px 14px var(--acc-dim), -4px -4px 10px var(--sl);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Primary Floating Action Button (FAB) */
+/* ── Danger button ─────────────────────────────────────── */
+.neu-btn-danger {
+  background: var(--b);
+  border-radius: 16px;
+  box-shadow: 5px 5px 12px var(--sd), -5px -5px 12px var(--sl);
+  border: none;
+  color: var(--danger);
+  user-select: none;
+  transition: box-shadow 0.14s ease;
+}
+
+.neu-btn-danger:active {
+  box-shadow: inset 4px 4px 8px var(--sd), inset -4px -4px 8px var(--sl);
+  transform: translateY(1px);
+}
+
+/* ── FAB ───────────────────────────────────────────────── */
 .neu-fab {
-  background-color: var(--neu-accent);
+  background: var(--acc);
   color: #ffffff;
   border-radius: 9999px;
-  box-shadow: 6px 6px 20px var(--neu-accent-glow), -5px -5px 16px var(--neu-light-shadow);
+  box-shadow: 6px 6px 18px var(--acc-dim), -5px -5px 14px var(--sl);
   border: none;
-  transition: all 0.15s ease;
+  transition: box-shadow 0.14s ease, transform 0.14s ease;
 }
 
 .neu-fab:hover {
-  transform: scale(1.05);
-  box-shadow: 8px 8px 24px rgba(255, 82, 56, 0.45), -6px -6px 18px var(--neu-light-shadow);
+  transform: scale(1.06);
+  box-shadow: 8px 8px 20px var(--acc-dim), -6px -6px 16px var(--sl);
 }
 
 .neu-fab:active {
   transform: scale(0.95);
-  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 4px 4px 8px rgba(0,0,0,0.2);
 }
 
-/* Interactive row feedback */
+/* ── iOS-style toggle ──────────────────────────────────── */
+.neu-toggle-track {
+  background: var(--b);
+  border-radius: 20px;
+  box-shadow: inset 4px 4px 8px var(--sd), inset -4px -4px 8px var(--sl);
+  border: none;
+  transition: all 0.22s ease;
+}
+
+.neu-toggle-thumb {
+  background: var(--b);
+  border-radius: 9999px;
+  box-shadow: 3px 3px 8px var(--sd), -3px -3px 8px var(--sl);
+  transition: transform 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+}
+
+.neu-toggle-thumb.on {
+  background: var(--acc);
+  box-shadow: 3px 3px 8px var(--acc-dim), -3px -3px 8px var(--sl);
+}
+
+/* ── Interactive rows ──────────────────────────────────── */
 .neu-row {
-  transition: background-color 0.15s ease, transform 0.1s ease;
   user-select: none;
-}
-.neu-row:active {
-  background-color: rgba(166, 178, 196, 0.12);
+  transition: background 0.12s ease;
+  border-radius: 18px;
 }
 
-/* Input spinners removal */
+.neu-row:active {
+  background: rgba(163,177,198,0.12);
+}
+
+/* ── Spinners off ──────────────────────────────────────── */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
-input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-::-webkit-scrollbar {
-  width: 0px;
-  height: 0px;
-}
+::-webkit-scrollbar { width: 0; height: 0; }

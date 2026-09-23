@@ -1,5 +1,4 @@
 import { Wallet } from 'lucide-react';
-import { ACCENT_COLOR } from '../lib/colors';
 
 export interface Segment {
   label: string;
@@ -7,12 +6,12 @@ export interface Segment {
   color?: string;
 }
 
-const MUTED_SEGMENT_GRAYS = ['#94a3b8', '#64748b', '#cbd5e1', '#475569', '#a0aec0'];
+const MUTED = ['#94a3b8', '#64748b', '#b0bec5', '#78909c', '#90a4ae', '#a8b2be'];
 
 export function DonutChart({
   segments,
-  size = 140,
-  thickness = 15
+  size = 148,
+  thickness = 17
 }: {
   segments: Segment[];
   size?: number;
@@ -24,51 +23,55 @@ export function DonutChart({
   let offset = 0;
 
   return (
-    /* Soft extruded circular disc container with carved chart bed */
-    <div className="neu-card-disc relative flex items-center justify-center p-3">
-      {/* Sunken track bed */}
-      <div className="neu-inset rounded-full p-1.5 flex items-center justify-center relative">
+    /* Soft extruded circular disc */
+    <div className="neu-card-disc relative flex items-center justify-center p-3.5 shrink-0">
+      {/* Inset-pressed circular track bed */}
+      <div className="relative flex items-center justify-center" style={{
+        borderRadius: '9999px',
+        padding: '6px',
+        boxShadow: 'inset 4px 4px 9px rgba(163,177,198,0.55), inset -4px -4px 9px rgba(255,255,255,0.85)',
+        background: '#e6e9ef'
+      }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-          {/* Recessed base circular track */}
+          {/* Sunken track ring */}
           <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
+            cx={size / 2} cy={size / 2} r={r}
             fill="none"
-            stroke="#dbe3eb"
+            stroke="rgba(163,177,198,0.3)"
             strokeWidth={thickness}
           />
-          {total > 0 &&
-            segments.map((s, i) => {
-              const frac = s.value / total;
-              const dash = frac * c;
-              // Exactly one segment in vivid accent color, remaining in sophisticated muted grays
-              const strokeColor = i === 0 ? ACCENT_COLOR : MUTED_SEGMENT_GRAYS[(i - 1) % MUTED_SEGMENT_GRAYS.length];
-              const el = (
-                <circle
-                  key={s.label || i}
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={r}
-                  fill="none"
-                  stroke={strokeColor}
-                  strokeWidth={thickness}
-                  strokeDasharray={`${dash} ${c - dash}`}
-                  strokeDashoffset={-offset}
-                  strokeLinecap="round"
-                  className="transition-all duration-300"
-                />
-              );
-              offset += dash;
-              return el;
-            })}
+          {total > 0 && segments.map((s, i) => {
+            const frac = s.value / total;
+            const dash = frac * c;
+            const color = i === 0 ? '#1a9e75' : MUTED[(i - 1) % MUTED.length];
+            const el = (
+              <circle
+                key={s.label + i}
+                cx={size / 2} cy={size / 2} r={r}
+                fill="none"
+                stroke={color}
+                strokeWidth={thickness}
+                strokeDasharray={`${dash} ${c - dash}`}
+                strokeDashoffset={-offset}
+                strokeLinecap="round"
+                className="transition-all duration-300"
+              />
+            );
+            offset += dash;
+            return el;
+          })}
         </svg>
 
-        {/* Centered small circular accent button with icon in the middle */}
-        <div className="absolute inset-0 m-auto flex items-center justify-center pointer-events-none">
-          <div className="neu-accent-circle h-10 w-10 flex items-center justify-center text-white">
-            <Wallet size={17} strokeWidth={2.4} />
-          </div>
+        {/* Centred accent circle — raised, small */}
+        <div
+          className="absolute flex items-center justify-center rounded-full"
+          style={{
+            width: 40, height: 40,
+            background: '#1a9e75',
+            boxShadow: '4px 4px 10px rgba(26,158,117,0.3), -3px -3px 8px rgba(255,255,255,0.85)'
+          }}
+        >
+          <Wallet size={16} strokeWidth={2.4} color="#ffffff" />
         </div>
       </div>
     </div>

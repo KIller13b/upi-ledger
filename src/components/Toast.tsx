@@ -1,46 +1,52 @@
 import { useEffect, useState } from 'react';
-import { setToastListener, type ToastKind } from '../lib/toast';
-import { playSound } from '../lib/sound';
-import { CheckCircle2, Info, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Info, AlertTriangle } from 'lucide-react';
+
+type ToastT = { id: number; msg: string; kind: 'success' | 'error' | 'info' };
+
+let _push: ((msg: string, kind: ToastT['kind']) => void) | null = null;
+
+export function toast(msg: string, kind: ToastT['kind'] = 'info') {
+  _push?.(msg, kind);
+}
+
+const ICONS = {
+  success: <CheckCircle2  size={16} strokeWidth={2.4} style={{ color: '#1a9e75' }} />,
+  error:   <AlertTriangle size={16} strokeWidth={2.4} style={{ color: '#dc2626' }} />,
+  info:    <Info          size={16} strokeWidth={2.4} style={{ color: '#5b6272' }} />
+} as const;
 
 export function ToastHost() {
-  const [msg, setMsg] = useState<string | null>(null);
-  const [kind, setKind] = useState<ToastKind>('info');
+  const [toasts, setToasts] = useState<ToastT[]>([]);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    setToastListener((m, k) => {
-      setMsg(m);
-      setKind(k);
-      if (k === 'success') {
-        playSound('success');
-      } else if (k === 'error') {
-        playSound('delete');
-      } else {
-        playSound('pop');
-      }
-      clearTimeout(timer);
-      timer = setTimeout(() => setMsg(null), 2600);
-    });
-    return () => {
-      clearTimeout(timer);
-      setToastListener(null);
+    let id = 0;
+    _push = (msg, kind) => {
+      const t: ToastT = { id: ++id, msg, kind };
+      setToasts((p) => [...p.slice(-3), t]);
+      setTimeout(() => setToasts((p) => p.filter((x) => x.id !== t.id)), 3000);
     };
+    return () => { _push = null; };
   }, []);
 
-  if (!msg) return null;
-  const Icon = kind === 'success' ? CheckCircle2 : kind === 'error' ? AlertCircle : Info;
-  const color = kind === 'success' ? 'text-[#ff5238]' : kind === 'error' ? 'text-[#ff5238]' : 'text-slate-600';
-
   return (
-    <div className="fixed inset-x-0 top-5 z-50 flex justify-center px-4 pointer-events-none">
-      {/* Floating pill toast with dual soft shadows */}
-      <div className="neu-float-nav flex items-center gap-2.5 rounded-full px-5 py-2.5">
-        <div className="neu-btn-circle flex h-6 w-6 items-center justify-center">
-          <Icon size={14} className={color} strokeWidth={2.5} />
+    <div className="fixed inset-x-0 top-5 z-50 flex flex-col items-center gap-2 px-5 pointer-events-none">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className="flex items-center gap-3 px-5 py-3.5 pointer-events-auto"
+          style={{
+            background: 'rgba(230,233,239,0.97)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 9999,
+            boxShadow: '7px 7px 18px rgba(163,177,198,0.55), -7px -7px 18px rgba(255,255,255,0.85)',
+            border: 'none',
+            maxWidth: '90vw'
+          }}
+        >
+          {ICONS[t.kind]}
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#2f3542' }}>{t.msg}</span>
         </div>
-        <span className="text-xs font-bold text-slate-800 tracking-tight">{msg}</span>
-      </div>
+      ))}
     </div>
   );
 }

@@ -6,62 +6,95 @@ import { DonutChart } from './DonutChart';
 import { BarChart } from './BarChart';
 import { Wallet, TrendingDown, TrendingUp, Upload, ShieldCheck } from 'lucide-react';
 
+// Shared inline-style helpers so every element sits on the same #e6e9ef base
+const RAISED = '7px 7px 16px rgba(163,177,198,0.55), -7px -7px 16px rgba(255,255,255,0.85)';
+const RAISED_SM = '5px 5px 12px rgba(163,177,198,0.55), -5px -5px 12px rgba(255,255,255,0.85)';
+const INSET   = 'inset 5px 5px 10px rgba(163,177,198,0.55), inset -5px -5px 10px rgba(255,255,255,0.85)';
+const BASE    = '#e6e9ef';
+const H1 = '#2f3542';
+const H2 = '#5b6272';
+const H3 = '#8991a0';
+const ACC = '#1a9e75';
+
+function Icon16({ children, size = 40 }: { children: React.ReactNode; size?: number }) {
+  return (
+    <span style={{
+      width: size, height: size, borderRadius: 16,
+      background: BASE, boxShadow: RAISED_SM,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+    }}>
+      {children}
+    </span>
+  );
+}
+
 export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
   const txns = useLiveQuery(() => db.transactions.orderBy('ts').toArray(), []);
 
   if (!txns) {
-    return <div className="p-12 text-center text-slate-400 font-medium">Loading…</div>;
+    return <div className="p-12 text-center text-sm font-medium" style={{ color: H3 }}>Loading…</div>;
   }
 
   const active = txns.filter((t) => !t.failed);
+
+  /* ── Empty / welcome state ─────────────────────────── */
   if (active.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-5 px-4 pt-12 pb-24 text-center">
-        <div className="neu-card rounded-[32px] p-8 flex flex-col items-center gap-4 w-full">
-          <div className="neu-card-disc flex h-20 w-20 items-center justify-center text-slate-600">
-            <Wallet size={34} strokeWidth={2} />
+      <div className="flex flex-col items-center gap-5 px-2 pt-8 pb-24 text-center">
+        <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '2rem', width: '100%' }}>
+          <div className="flex flex-col items-center gap-4">
+            <span style={{ width: 72, height: 72, borderRadius: 24, background: BASE, boxShadow: RAISED, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Wallet size={32} color={H2} strokeWidth={1.8} />
+            </span>
+
+            <div>
+              <h2 className="text-xl font-extrabold" style={{ color: H1 }}>Welcome to UPI Ledger</h2>
+              <p className="mt-1.5 text-xs leading-relaxed max-w-xs mx-auto" style={{ color: H2 }}>
+                Import a Google Pay or bank statement to visualise your balance, spending, and monthly trends. Everything stays on this device.
+              </p>
+            </div>
+
+            {/* Inset status badge */}
+            <div style={{ background: BASE, borderRadius: 9999, boxShadow: INSET, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px' }}>
+              <ShieldCheck size={13} color={ACC} strokeWidth={2.2} />
+              <span className="text-[11px] font-semibold" style={{ color: H2 }}>100% private and offline</span>
+            </div>
+
+            {/* Primary CTA — raised accent green */}
+            <button
+              onClick={() => onNavigate('import')}
+              data-sound="pop"
+              className="neu-btn-accent mt-2 inline-flex items-center gap-2 px-7 py-3.5 text-sm font-bold"
+              style={{ borderRadius: 9999 }}
+            >
+              <Upload size={17} strokeWidth={2.4} /> Import statement
+            </button>
           </div>
-          <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">Welcome to UPI Ledger</h2>
-          <p className="max-w-xs text-xs text-slate-500 leading-relaxed">
-            Import a Google Pay or bank statement to visualize your balance, spending patterns and monthly trends.
-          </p>
-          <div className="neu-inset flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-medium text-slate-600">
-            <ShieldCheck size={14} className="text-[#ff5238]" /> 100% private and offline
-          </div>
-          <button
-            onClick={() => onNavigate('import')}
-            data-sound="pop"
-            className="neu-accent-btn mt-3 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-xs font-bold uppercase tracking-wider"
-          >
-            <Upload size={17} /> Import statement
-          </button>
         </div>
       </div>
     );
   }
 
-  const thisMon = monthKey(todayStr());
+  /* ── Data ──────────────────────────────────────────── */
+  const thisMon  = monthKey(todayStr());
   const prevDate = new Date();
   prevDate.setDate(1);
   prevDate.setMonth(prevDate.getMonth() - 1);
   const prevMon = monthKey(prevDate.toISOString().slice(0, 10));
 
-  let spent = 0;
-  let spentPrev = 0;
-  let received = 0;
-  let receivedPrev = 0;
-  const catMap = new Map<string, number>();
-  const monthSpend = new Map<string, number>();
+  let spent = 0, spentPrev = 0, received = 0, receivedPrev = 0;
+  const catMap    = new Map<string, number>();
+  const monthSpend= new Map<string, number>();
 
   for (const t of active) {
     const mk = monthKey(t.date);
     monthSpend.set(mk, (monthSpend.get(mk) ?? 0) + (t.type === 'debit' ? t.amount : 0));
     if (t.type === 'debit') {
-      if (mk === thisMon) spent += t.amount;
-      if (mk === prevMon) spentPrev += t.amount;
+      if (mk === thisMon) spent      += t.amount;
+      if (mk === prevMon) spentPrev  += t.amount;
       catMap.set(t.category, (catMap.get(t.category) ?? 0) + t.amount);
     } else {
-      if (mk === thisMon) received += t.amount;
+      if (mk === thisMon) received     += t.amount;
       if (mk === prevMon) receivedPrev += t.amount;
     }
   }
@@ -77,8 +110,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
     .map(([label, value]) => ({ label, value }));
 
   const last6: Array<{ label: string; value: number }> = [];
-  const anchor = new Date();
-  anchor.setDate(1);
+  const anchor = new Date(); anchor.setDate(1);
   for (let i = 5; i >= 0; i--) {
     const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -89,125 +121,113 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
   const totalCatSpend = [...catMap.values()].reduce((a, b) => a + b, 0);
   const delta = deltaPct == null ? null : deltaPct > 0 ? `+${deltaPct}% vs last month` : `${deltaPct}% vs last month`;
 
+  const MUTED_SEGS = ['#94a3b8', '#64748b', '#b0bec5', '#78909c', '#90a4ae'];
+
   return (
     <div className="space-y-5">
-      {/* Current Balance Neumorphic Card (28-32px radius, base color, high-contrast numeric data) */}
-      <div className="neu-card rounded-[30px] p-6 relative">
+      {/* ── Current Balance Card ── */}
+      <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-600">
-              <Wallet size={17} strokeWidth={2.2} />
-            </div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Current balance
-            </span>
+          <div className="flex items-center gap-3">
+            <Icon16 size={38}>
+              <Wallet size={17} color={ACC} strokeWidth={2.2} />
+            </Icon16>
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: H3 }}>Current balance</span>
           </div>
-          <span className="neu-inset rounded-full px-3 py-1 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-            Verified
+          {/* Inset badge */}
+          <span style={{
+            background: BASE, borderRadius: 9999, boxShadow: INSET,
+            padding: '4px 12px', fontSize: 10, fontWeight: 700, color: H2, letterSpacing: '0.05em', textTransform: 'uppercase'
+          }}>
+            Live
           </span>
         </div>
 
-        <div className="mt-4 text-4xl font-extrabold tracking-tight text-slate-900">
+        <div className="mt-4 text-4xl font-extrabold tracking-tight" style={{ color: H1 }}>
           {fmtRupee(balance)}
         </div>
-
-        <div className="mt-1.5 text-xs font-medium text-slate-400">
+        <div className="mt-1.5 text-xs font-medium" style={{ color: H3 }}>
           {lastWithBalance
             ? `As of ${monthLabel(monthKey(lastWithBalance.date))} statement`
             : 'Estimated from your entries'}
         </div>
       </div>
 
-      {/* Monthly Metrics Grid */}
+      {/* ── Monthly Metrics ── */}
       <div className="grid grid-cols-2 gap-4">
-        {/* Spent Card */}
-        <div className="neu-card-sm rounded-[26px] p-5">
-          <div className="flex items-center gap-2">
-            <div className="neu-btn-circle flex h-7 w-7 items-center justify-center text-[#ff5238]">
-              <TrendingDown size={14} strokeWidth={2.5} />
-            </div>
-            <span className="text-xs font-semibold text-slate-500">Spent this month</span>
+        {/* Spent */}
+        <div style={{ background: BASE, borderRadius: 26, boxShadow: RAISED_SM, padding: '1.25rem' }}>
+          <div className="flex items-center gap-2.5 mb-3">
+            <Icon16 size={34}>
+              <TrendingDown size={15} color={H2} strokeWidth={2.2} />
+            </Icon16>
+            <span className="text-xs font-semibold" style={{ color: H2 }}>Spent this month</span>
           </div>
-          <div className="mt-2.5 text-2xl font-extrabold tracking-tight text-slate-900">
-            {fmtRupee(spent)}
-          </div>
-          <div className="mt-1 text-[11px] font-medium text-slate-400">
-            {delta != null ? (deltaPct === 0 ? 'Same as last month' : delta) : 'No prior month data'}
+          <div className="text-2xl font-extrabold tracking-tight" style={{ color: H1 }}>{fmtRupee(spent)}</div>
+          <div className="mt-1 text-[11px] font-medium" style={{ color: H3 }}>
+            {delta != null ? (deltaPct === 0 ? 'Same as last month' : delta) : 'No prior data'}
           </div>
         </div>
 
-        {/* Received Card */}
-        <div className="neu-card-sm rounded-[26px] p-5">
-          <div className="flex items-center gap-2">
-            <div className="neu-btn-circle flex h-7 w-7 items-center justify-center text-slate-600">
-              <TrendingUp size={14} strokeWidth={2.5} />
-            </div>
-            <span className="text-xs font-semibold text-slate-500">Received this month</span>
+        {/* Received */}
+        <div style={{ background: BASE, borderRadius: 26, boxShadow: RAISED_SM, padding: '1.25rem' }}>
+          <div className="flex items-center gap-2.5 mb-3">
+            <Icon16 size={34}>
+              <TrendingUp size={15} color={ACC} strokeWidth={2.2} />
+            </Icon16>
+            <span className="text-xs font-semibold" style={{ color: H2 }}>Received</span>
           </div>
-          <div className="mt-2.5 text-2xl font-extrabold tracking-tight text-slate-900">
-            {fmtRupee(received)}
-          </div>
-          <div className="mt-1 text-[11px] font-medium text-slate-400">Transfers & refunds</div>
+          <div className="text-2xl font-extrabold tracking-tight" style={{ color: H1 }}>{fmtRupee(received)}</div>
+          <div className="mt-1 text-[11px] font-medium" style={{ color: H3 }}>Transfers & refunds</div>
         </div>
       </div>
 
-      {/* 6 Months Spending Bar Chart Card */}
-      <div className="neu-card rounded-[30px] p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-800 tracking-tight">Spending — last 6 months</h3>
-          <span className="text-[11px] font-semibold text-slate-400">Monthly breakdown</span>
+      {/* ── 6-Month Spending Bar Chart ── */}
+      <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-sm font-bold" style={{ color: H1 }}>Spending — last 6 months</h3>
+          <span className="text-[11px] font-semibold" style={{ color: H3 }}>Monthly</span>
         </div>
         <BarChart data={last6} />
       </div>
 
-      {/* Category Breakdown Card with carved Donut Chart */}
-      <div className="neu-card rounded-[30px] p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-800 tracking-tight">Category breakdown</h3>
-          <span className="text-[11px] font-semibold text-slate-400">Top merchants</span>
+      {/* ── Category Breakdown ── */}
+      <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-sm font-bold" style={{ color: H1 }}>Category breakdown</h3>
+          <span className="text-[11px] font-semibold" style={{ color: H3 }}>This month</span>
         </div>
 
         {segments.length === 0 ? (
-          <div className="neu-inset rounded-[22px] py-8 text-center text-xs font-medium text-slate-400">
-            No spending recorded this month yet.
+          <div style={{ background: BASE, borderRadius: 20, boxShadow: INSET, padding: '2rem', textAlign: 'center' }}>
+            <span className="text-xs font-medium" style={{ color: H3 }}>No spending recorded this month yet.</span>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            {/* Donut Chart carved in a soft extruded disc with centered small circular accent button */}
-            <div className="shrink-0">
-              <DonutChart segments={segments} />
-            </div>
-
-            {/* Monochrome category legend with one accent item */}
-            <div className="w-full flex-1 space-y-2.5">
+          <div className="flex items-center gap-5">
+            <DonutChart segments={segments} />
+            <div className="flex-1 space-y-2.5">
               {segments.slice(0, 4).map((s, idx) => {
                 const isTop = idx === 0;
+                const dotColor = isTop ? ACC : MUTED_SEGS[idx - 1] ?? '#94a3b8';
                 return (
                   <div key={s.label} className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-2">
-                      <span
-                        className={`h-2.5 w-2.5 rounded-full ${
-                          isTop ? 'bg-[#ff5238] shadow-[0_0_6px_rgba(255,82,56,0.4)]' : 'bg-slate-400'
-                        }`}
-                      />
-                      <span className={`font-medium ${isTop ? 'font-bold text-slate-800' : 'text-slate-600'}`}>
-                        {s.label}
-                      </span>
+                      <span style={{ width: 9, height: 9, borderRadius: 9999, background: dotColor, flexShrink: 0 }} />
+                      <span style={{ color: isTop ? H1 : H2, fontWeight: isTop ? 700 : 500 }}>{s.label}</span>
                     </span>
-                    <span className={`tabular-nums ${isTop ? 'font-extrabold text-slate-900' : 'font-semibold text-slate-700'}`}>
+                    <span style={{ color: H1, fontWeight: isTop ? 800 : 600 }} className="tabular-nums">
                       {fmtRupee(s.value)}
                     </span>
                   </div>
                 );
               })}
-
               {totalCatSpend > segments.slice(0, 4).reduce((a, s) => a + s.value, 0) && (
-                <div className="flex items-center justify-between text-xs text-slate-400 pt-0.5">
+                <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                    <span className="font-medium">Others</span>
+                    <span style={{ width: 9, height: 9, borderRadius: 9999, background: '#cbd5e1', flexShrink: 0 }} />
+                    <span style={{ color: H3, fontWeight: 500 }}>Others</span>
                   </span>
-                  <span className="font-semibold text-slate-600 tabular-nums">
+                  <span style={{ color: H2, fontWeight: 600 }} className="tabular-nums">
                     {fmtRupee(totalCatSpend - segments.slice(0, 4).reduce((a, s) => a + s.value, 0))}
                   </span>
                 </div>
