@@ -13,13 +13,13 @@ const HAPTICS_STORAGE_KEY = 'upi_haptics_enabled';
 // ── Haptics state ─────────────────────────────────────────────────────────────
 let hapticsEnabled = true;
 
-// Vibration patterns per sound type (ms: on, off, on, …)
+// Vibration patterns per sound type — maxed to practical ceiling of Web Vibration API
 const HAPTIC_PATTERNS: Record<SoundType, number | number[]> = {
-  tap:     40,              // strong single tick
-  pop:     [55],            // punchy pulse
-  success: [30, 80, 60],   // strong double-tap confirm
-  delete:  [100],           // heavy thud
-  toggle:  [25, 60, 25],   // crisp double micro-click
+  tap:     200,                    // solid strong tick
+  pop:     [200],                  // heavy punch
+  success: [150, 100, 250],        // strong double-beat confirm
+  delete:  [500],                  // full deep rumble
+  toggle:  [150, 80, 150],         // powerful double-click
 };
 
 function vibrate(pattern: number | number[]) {
