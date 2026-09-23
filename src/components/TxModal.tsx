@@ -126,7 +126,7 @@ export function TxModal({ initial, onClose }: { initial?: Transaction; onClose: 
             <div>
               <label className="block mb-1.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: H3 }}>Date</label>
               <input style={inputStyle} className="focus:outline-none placeholder:text-[#8991a0]"
-                value={date} onChange={(e) => setDate(e.target.value)} placeholder="YYYY-MM-DD" />
+                type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div>
               <label className="block mb-1.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: H3 }}>Amount (₹)</label>

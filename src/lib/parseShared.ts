@@ -30,7 +30,22 @@ export function findDate(raw: string): { date: string; idx0: number; idx1: numbe
 }
 
 export function parseDateToken(raw: string): string | null {
-  return findDate(raw)?.date ?? null;
+  const trimmed = raw.trim();
+
+  // 1. ISO date: YYYY-MM-DD  (what <input type="date"> and manual entry produce)
+  const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const [, y, m, d] = iso;
+    const year = parseInt(y, 10);
+    const mon  = parseInt(m, 10);
+    const day  = parseInt(d, 10);
+    if (year >= 2000 && mon >= 1 && mon <= 12 && day >= 1 && day <= 31) {
+      return `${y}-${m}-${d}`;
+    }
+  }
+
+  // 2. DD Mon YYYY  or  DD/MM/YYYY  (imported statement formats)
+  return findDate(trimmed)?.date ?? null;
 }
 
 export function dayStamp(dateStr: string): number {

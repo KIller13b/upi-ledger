@@ -96,7 +96,7 @@ export function ReviewTable({ cands, onPatch, expanded, onToggleExpand }:
                 >
                   <div>
                     <span className="block text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: H3 }}>Date</span>
-                    <input style={inputSt} className="focus:outline-none" value={c.tx.date}
+                    <input style={inputSt} className="focus:outline-none" type="date" value={c.tx.date}
                       onChange={(e) => { const d = e.target.value; onPatch(i, { ...c, tx: { ...c.tx, date: d, ts: dayStamp(d || '1970-01-01') } }); }} />
                   </div>
                   <div>
