@@ -15,11 +15,11 @@ let hapticsEnabled = true;
 
 // Vibration patterns per sound type (ms: on, off, on, …)
 const HAPTIC_PATTERNS: Record<SoundType, number | number[]> = {
-  tap:     8,             // crisp single tick
-  pop:     [12, 0],       // soft single pulse
-  success: [10, 60, 18],  // double-tap: confirm feel
-  delete:  [30],          // heavy thud
-  toggle:  [6, 40, 6],    // subtle double micro-click
+  tap:     40,              // strong single tick
+  pop:     [55],            // punchy pulse
+  success: [30, 80, 60],   // strong double-tap confirm
+  delete:  [100],           // heavy thud
+  toggle:  [25, 60, 25],   // crisp double micro-click
 };
 
 function vibrate(pattern: number | number[]) {
