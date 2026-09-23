@@ -30,14 +30,16 @@ export function ToastHost() {
 
   if (!msg) return null;
   const Icon = kind === 'success' ? CheckCircle2 : kind === 'error' ? AlertCircle : Info;
-  const color = kind === 'success' ? 'text-emerald-400' : kind === 'error' ? 'text-red-400' : 'text-sky-400';
+  const color = kind === 'success' ? 'text-[#ff5238]' : kind === 'error' ? 'text-[#ff5238]' : 'text-slate-600';
+
   return (
-    <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4 pointer-events-none">
-      <div className="neu-card flex items-center gap-2.5 rounded-2xl px-4 py-2.5 shadow-2xl border border-white/[0.08] backdrop-blur-md">
-        <div className="neu-sunken flex h-6 w-6 items-center justify-center rounded-lg">
-          <Icon size={15} className={color} />
+    <div className="fixed inset-x-0 top-5 z-50 flex justify-center px-4 pointer-events-none">
+      {/* Floating pill toast with dual soft shadows */}
+      <div className="neu-float-nav flex items-center gap-2.5 rounded-full px-5 py-2.5">
+        <div className="neu-btn-circle flex h-6 w-6 items-center justify-center">
+          <Icon size={14} className={color} strokeWidth={2.5} />
         </div>
-        <span className="text-xs font-semibold text-slate-100">{msg}</span>
+        <span className="text-xs font-bold text-slate-800 tracking-tight">{msg}</span>
       </div>
     </div>
   );

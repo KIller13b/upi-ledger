@@ -24,13 +24,14 @@ export default function App() {
   }, []);
 
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col">
-      <header className="sticky top-0 z-30 bg-[#0c1424]/90 px-4 pb-3.5 pt-[calc(0.85rem+env(safe-area-inset-top))] backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.3)] border-b border-white/[0.04]">
-        <h1 className="text-xl font-bold tracking-tight text-slate-50 drop-shadow-sm">{title}</h1>
-        <p className="mt-0.5 text-xs text-slate-400">{sub}</p>
+    <div className="mx-auto flex min-h-full max-w-lg flex-col bg-[#eef1f5]">
+      {/* Flat cool light-gray header with generous spacing and bold dark slate heading */}
+      <header className="sticky top-0 z-30 bg-[#eef1f5]/90 px-6 pb-3 pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-md">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-800">{title}</h1>
+        <p className="mt-0.5 text-xs font-medium text-slate-500">{sub}</p>
       </header>
 
-      <main className="flex-1 px-4 pb-28 pt-3">
+      <main className="flex-1 px-5 pb-32 pt-2">
         <div key={tab}>
           {tab === 'dashboard' && <Dashboard onNavigate={setTab} />}
           {tab === 'transactions' && <TransactionsView />}

@@ -1,23 +1,25 @@
-const PALETTE = [
-  '#34d399',
-  '#fbbf24',
-  '#f87171',
-  '#60a5fa',
-  '#a78bfa',
-  '#f472b6',
-  '#2dd4bf',
-  '#fb923c',
-  '#a3e635',
-  '#38bdf8',
-  '#e879f9',
-  '#f97316',
-  '#94a3b8'
+// Soft monochrome palette with a single vivid accent color (fintech iOS Neumorphism)
+export const ACCENT_COLOR = '#ff5238'; // Vivid orange/coral red
+
+// Sophisticated cool blue-gray tones for secondary segments and tags
+const MUTED_GRAYS = [
+  '#64748b',
+  '#94a3b8',
+  '#475569',
+  '#78889b',
+  '#526071',
+  '#a0aec0',
+  '#718096',
+  '#8395a7',
+  '#6c7a89',
+  '#596275'
 ];
 
-export function categoryColor(category: string): string {
+export function categoryColor(category: string, isAccent = false): string {
+  if (isAccent) return ACCENT_COLOR;
   let h = 0;
   for (let i = 0; i < category.length; i++) h = (h * 31 + category.charCodeAt(i)) >>> 0;
-  return PALETTE[h % PALETTE.length];
+  return MUTED_GRAYS[h % MUTED_GRAYS.length];
 }
 
 export function blend(c: string, amt: number): string {

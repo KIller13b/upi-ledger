@@ -3,7 +3,7 @@ import type { Candidate } from '../lib/import';
 import { CATEGORIES } from '../lib/categories';
 import { fmtRupee, fmtDate } from '../lib/format';
 import { dayStamp } from '../lib/parseShared';
-import { ChevronDown, ChevronUp, Copy, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, AlertTriangle, Check } from 'lucide-react';
 
 export function ReviewTable({
   cands,
@@ -21,13 +21,13 @@ export function ReviewTable({
   const pages = Math.max(1, Math.ceil(cands.length / per));
   const cur = cands.slice(page * per, page * per + per);
 
-  const label = 'block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1';
+  const label = 'block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1';
   const input =
-    'neu-input w-full rounded-xl px-2.5 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none';
+    'neu-input w-full rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none';
 
   return (
-    <div>
-      <div className="mb-3 space-y-2">
+    <div className="space-y-4">
+      <div className="space-y-3">
         {cur.map((c, slot) => {
           const i = page * per + slot;
           const open = expanded.has(i);
@@ -35,60 +35,50 @@ export function ReviewTable({
           return (
             <div
               key={i}
-              className={`neu-card overflow-hidden rounded-2xl transition-all ${
-                c.sel ? 'border-emerald-500/30' : 'opacity-60'
+              className={`neu-card-sm rounded-[24px] p-3 transition-all ${
+                c.sel ? 'opacity-100' : 'opacity-60'
               }`}
             >
-              <div className="flex items-stretch">
+              <div className="flex items-center gap-3">
+                {/* Circular soft checkbox control */}
                 <button
+                  type="button"
                   data-sound="pop"
-                  className={`flex w-12 items-center justify-center border-r border-white/[0.04] transition-colors ${
-                    c.sel ? 'text-emerald-400' : 'text-slate-600'
-                  }`}
                   onClick={() => onPatch(i, { ...c, sel: !c.sel })}
+                  className="shrink-0 p-1"
                 >
-                  <span
-                    className={`flex h-6 w-6 items-center justify-center rounded-lg transition-all ${
-                      c.sel ? 'neu-btn-primary text-slate-950' : 'neu-sunken border border-slate-700'
+                  <div
+                    className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${
+                      c.sel ? 'neu-accent-circle text-white' : 'neu-inset text-transparent'
                     }`}
                   >
-                    {c.sel && (
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[3]" fill="none" stroke="currentColor">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </span>
+                    {c.sel && <Check size={14} strokeWidth={3} />}
+                  </div>
                 </button>
 
                 <div
-                  className="flex flex-1 flex-col gap-1 px-3.5 py-3 cursor-pointer"
+                  className="flex flex-1 flex-col gap-0.5 cursor-pointer min-w-0"
                   onClick={() => onToggleExpand(i)}
                 >
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`text-[10px] font-extrabold uppercase tracking-wide ${
-                        c.tx.type === 'debit' ? 'text-red-400' : 'text-emerald-400'
-                      }`}
-                    >
+                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">
                       {c.tx.type === 'debit' ? 'Out' : 'In'}
                     </span>
-                    <span className="text-sm font-bold text-slate-100">
+                    <span className="text-sm font-extrabold text-slate-900 tracking-tight">
                       {c.tx.type === 'debit' ? '−' : '+'}
                       {fmtRupee(c.tx.amount)}
                     </span>
-                    {bad && <AlertTriangle size={12} className="text-amber-400" />}
-                    <span className="ml-auto flex items-center gap-1 text-[11px] text-slate-400">
+                    {bad && <AlertTriangle size={12} className="text-[#ff5238]" />}
+                    <span className="ml-auto flex items-center gap-1 text-[11px] font-medium text-slate-400">
                       {fmtDate(c.tx.date)}
                       {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </span>
                   </div>
-                  <div className="truncate text-xs font-medium text-slate-300">{c.tx.description || '\u2014'}</div>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                    <span className="neu-sunken rounded-md px-1.5 py-0.5 font-medium text-slate-300">
-                      {c.tx.category}
-                    </span>
+                  <div className="truncate text-xs font-semibold text-slate-700">{c.tx.description || '\u2014'}</div>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                    <span>{c.tx.category}</span>
                     {c.dup && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 font-medium text-amber-400">
+                      <span className="inline-flex items-center gap-1 text-[#ff5238] font-bold">
                         <Copy size={9} /> duplicate
                       </span>
                     )}
@@ -97,7 +87,7 @@ export function ReviewTable({
               </div>
 
               {open && (
-                <div className="grid grid-cols-2 gap-2.5 border-t border-white/[0.04] p-3.5 sm:grid-cols-3">
+                <div className="mt-3 grid grid-cols-2 gap-3 pt-3 border-t border-slate-300/40 sm:grid-cols-3">
                   <div>
                     <span className={label}>Date (YYYY-MM-DD)</span>
                     <input
@@ -182,10 +172,10 @@ export function ReviewTable({
                   </div>
                   {c.tx.balance == null && (
                     <div className="flex items-center pt-5">
-                      <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded accent-red-500 cursor-pointer"
+                          className="h-4 w-4 rounded accent-[#ff5238]"
                           checked={c.tx.failed}
                           onChange={(e) => onPatch(i, { ...c, tx: { ...c.tx, failed: e.target.checked } })}
                         />
@@ -194,7 +184,7 @@ export function ReviewTable({
                     </div>
                   )}
                   {c.note && (
-                    <div className="col-span-2 flex items-center gap-1.5 rounded-xl bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300 sm:col-span-3">
+                    <div className="col-span-2 flex items-center gap-1.5 rounded-xl bg-orange-100/70 px-3 py-1.5 text-[11px] font-semibold text-[#ff5238] sm:col-span-3">
                       <AlertTriangle size={12} /> {c.note}
                     </div>
                   )}
@@ -206,23 +196,23 @@ export function ReviewTable({
       </div>
 
       {pages > 1 && (
-        <div className="flex items-center justify-between px-1 pt-2 pb-1 text-xs text-slate-400">
+        <div className="flex items-center justify-between px-2 pt-2 text-xs text-slate-500 font-medium">
           <button
             disabled={page === 0}
             data-sound="pop"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="neu-btn rounded-xl px-4 py-2 font-medium disabled:opacity-30"
+            className="neu-btn rounded-full px-5 py-2 font-bold disabled:opacity-40"
           >
             Prev
           </button>
-          <span className="font-medium text-slate-400">
+          <span>
             Page {page + 1} / {pages}
           </span>
           <button
             disabled={page >= pages - 1}
             data-sound="pop"
             onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
-            className="neu-btn rounded-xl px-4 py-2 font-medium disabled:opacity-30"
+            className="neu-btn rounded-full px-5 py-2 font-bold disabled:opacity-40"
           >
             Next
           </button>

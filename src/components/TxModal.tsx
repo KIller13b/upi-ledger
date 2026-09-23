@@ -5,7 +5,7 @@ import { CATEGORIES } from '../lib/categories';
 import { dayStamp, parseDateToken } from '../lib/parseShared';
 import { todayStr } from '../lib/format';
 import { toast } from '../lib/toast';
-import { X, Trash2, Save } from 'lucide-react';
+import { X, Trash2, Check } from 'lucide-react';
 
 export function TxModal({ initial, onClose }: { initial?: Transaction; onClose: () => void }) {
   const [date, setDate] = useState(initial?.date ?? todayStr());
@@ -63,35 +63,64 @@ export function TxModal({ initial, onClose }: { initial?: Transaction; onClose: 
   };
 
   const inputCls =
-    'neu-input w-full rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none';
+    'neu-input w-full rounded-2xl px-4 py-3 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/30 backdrop-blur-sm" onClick={onClose}>
+      {/* Neumorphic bottom sheet with 32px top radius and base color */}
       <div
-        className="neu-card max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl"
+        className="neu-card max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-[36px] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-100 drop-shadow-sm">
-            {initial ? 'Edit transaction' : 'Add transaction'}
-          </h2>
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="text-lg font-extrabold text-slate-800 tracking-tight">
+            {initial ? 'Edit transaction' : 'New transaction'}
+          </h3>
           <button
             onClick={onClose}
             data-sound="pop"
-            className="neu-btn flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:text-slate-200"
+            className="neu-btn-circle flex h-9 w-9 items-center justify-center text-slate-500 hover:text-slate-700"
           >
-            <X size={18} />
+            <X size={17} strokeWidth={2.4} />
           </button>
         </div>
 
-        <div className="space-y-3.5">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
+          {/* Segmented type toggle (Money out / Money in) in inset track */}
+          <div className="neu-inset flex rounded-full p-1.5">
+            <button
+              type="button"
+              data-sound="pop"
+              onClick={() => setType('debit')}
+              className={`flex-1 rounded-full py-2.5 text-xs font-bold transition-all ${
+                type === 'debit'
+                  ? 'neu-btn text-slate-900'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Money out
+            </button>
+            <button
+              type="button"
+              data-sound="pop"
+              onClick={() => setType('credit')}
+              className={`flex-1 rounded-full py-2.5 text-xs font-bold transition-all ${
+                type === 'credit'
+                  ? 'neu-btn text-slate-900'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Money in
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Date</label>
-              <input className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} placeholder="2026-09-22" />
+              <label className="mb-1.5 block text-xs font-semibold text-slate-500">Date</label>
+              <input className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} placeholder="YYYY-MM-DD" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Amount (₹)</label>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-500">Amount (₹)</label>
               <input
                 className={inputCls}
                 type="number"
@@ -100,105 +129,87 @@ export function TxModal({ initial, onClose }: { initial?: Transaction; onClose: 
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="250"
+                placeholder="0.00"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-400">Description</label>
-            <input className={inputCls} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Swiggy order" />
+            <label className="mb-1.5 block text-xs font-semibold text-slate-500">Description</label>
+            <input className={inputCls} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Merchant or recipient" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Type</label>
-              <div className="neu-sunken flex rounded-xl p-1">
-                <button
-                  type="button"
-                  data-sound="pop"
-                  onClick={() => setType('debit')}
-                  className={`flex-1 rounded-lg py-2 text-xs font-bold transition-all ${
-                    type === 'debit'
-                      ? 'neu-card text-red-400 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Money out
-                </button>
-                <button
-                  type="button"
-                  data-sound="pop"
-                  onClick={() => setType('credit')}
-                  className={`flex-1 rounded-lg py-2 text-xs font-bold transition-all ${
-                    type === 'credit'
-                      ? 'neu-card text-emerald-400 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Money in
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Category</label>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-500">Category</label>
               <select className={inputCls} value={category} onChange={(e) => setCategory(e.target.value)}>
                 {CATEGORIES.map((c) => (
-                  <option key={c} value={c} className="bg-slate-900">
+                  <option key={c} value={c} className="bg-[#eef1f5]">
                     {c}
                   </option>
                 ))}
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">UPI reference</label>
-              <input className={inputCls} value={upiRef} onChange={(e) => setUpiRef(e.target.value)} placeholder="400869145608" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Balance after (optional)</label>
-              <input
-                className={inputCls}
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                value={balance}
-                onChange={(e) => setBalance(e.target.value)}
-                placeholder="10250.50"
-              />
+              <label className="mb-1.5 block text-xs font-semibold text-slate-500">UPI Ref</label>
+              <input className={inputCls} value={upiRef} onChange={(e) => setUpiRef(e.target.value)} placeholder="Reference number" />
             </div>
           </div>
 
-          <label className="neu-sunken flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs text-slate-300 cursor-pointer">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-500">Balance after (optional)</label>
             <input
-              type="checkbox"
-              checked={failed}
-              onChange={(e) => setFailed(e.target.checked)}
-              className="h-4 w-4 rounded accent-red-500 cursor-pointer"
+              className={inputCls}
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={balance}
+              onChange={(e) => setBalance(e.target.value)}
+              placeholder="Running balance"
             />
-            <span>Failed transaction (payment did not go through)</span>
-          </label>
+          </div>
+
+          {/* Neumorphic toggle switch for failed transaction */}
+          <div
+            onClick={() => setFailed(!failed)}
+            className="neu-card-sm flex items-center justify-between rounded-2xl p-3.5 cursor-pointer"
+          >
+            <span className="text-xs font-semibold text-slate-700">Failed transaction</span>
+            <div className={`neu-inset h-7 w-12 rounded-full p-0.5 flex items-center transition-colors ${failed ? 'bg-[#ff5238]/20' : ''}`}>
+              <div
+                className={`h-6 w-6 rounded-full transition-transform duration-200 flex items-center justify-center ${
+                  failed
+                    ? 'translate-x-5 bg-[#ff5238] text-white shadow-sm'
+                    : 'translate-x-0 neu-btn text-slate-400'
+                }`}
+              >
+                {failed && <Check size={12} strokeWidth={3} />}
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Action buttons */}
         <div className="mt-6 flex items-center gap-3">
           {initial?.id ? (
             <button
               onClick={remove}
               data-sound="delete"
-              className="neu-btn-danger flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold"
+              className="neu-btn-circle flex h-12 w-12 shrink-0 items-center justify-center text-[#ff5238]"
+              title="Delete transaction"
             >
-              <Trash2 size={16} /> Delete
+              <Trash2 size={18} strokeWidth={2.2} />
             </button>
           ) : null}
+
+          {/* Vivid accent button reserved for primary save action */}
           <button
             onClick={save}
             disabled={busy}
             data-sound="success"
-            className="neu-btn-primary flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-50"
+            className="neu-accent-btn flex flex-1 items-center justify-center gap-2 rounded-full py-3.5 px-6 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
           >
-            <Save size={16} /> Save transaction
+            <Check size={18} strokeWidth={2.8} /> Save transaction
           </button>
         </div>
       </div>

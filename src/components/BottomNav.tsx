@@ -10,8 +10,9 @@ const items: Array<{ id: TabId; label: string; icon: typeof LayoutDashboard }> =
 
 export function BottomNav({ tab, onChange }: { tab: TabId; onChange: (t: TabId) => void }) {
   return (
-    <nav className="neu-nav-bar fixed inset-x-0 bottom-0 z-40 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2">
-      <div className="mx-auto flex max-w-lg px-3">
+    <nav className="fixed inset-x-0 bottom-5 z-40 mx-auto max-w-xs px-2 pointer-events-none pb-[env(safe-area-inset-bottom)]">
+      {/* Floating rounded pill nav bar */}
+      <div className="neu-float-nav pointer-events-auto flex items-center justify-around py-2 px-2.5">
         {items.map((it) => {
           const active = tab === it.id;
           const Icon = it.icon;
@@ -20,24 +21,21 @@ export function BottomNav({ tab, onChange }: { tab: TabId; onChange: (t: TabId) 
               key={it.id}
               onClick={() => onChange(it.id)}
               data-sound="pop"
-              className="group flex flex-1 flex-col items-center justify-center py-1 text-[11px] transition-all"
+              aria-label={it.label}
+              className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 ${
+                active
+                  ? 'neu-btn-circle text-[#ff5238]'
+                  : 'text-slate-400 hover:text-slate-600 active:scale-95'
+              }`}
             >
-              <div
-                className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1.5 transition-all ${
-                  active
-                    ? 'neu-nav-item-active text-emerald-400'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Icon
-                  size={20}
-                  strokeWidth={active ? 2.5 : 1.9}
-                  className={`transition-transform duration-150 ${active ? 'scale-110 drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]' : 'group-hover:scale-105'}`}
-                />
-                <span className={`text-[10px] font-medium tracking-tight ${active ? 'font-semibold text-emerald-400' : ''}`}>
-                  {it.label}
-                </span>
-              </div>
+              <Icon
+                size={21}
+                strokeWidth={active ? 2.4 : 1.9}
+                className="transition-transform duration-150"
+              />
+              {active && (
+                <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-[#ff5238]" />
+              )}
             </button>
           );
         })}
