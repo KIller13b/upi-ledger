@@ -50,20 +50,36 @@ export function setSoundEnabled(enabled: boolean): void {
 }
 
 /**
- * Play a synthesized tactile sound effect.
+ * Creates a DynamicsCompressorNode so sounds stay loud but never clip on
+ * mobile speakers. All oscillators route through this before ctx.destination.
+ */
+function mkCompressor(ctx: AudioContext): DynamicsCompressorNode {
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -6;   // dB — starts compressing early
+  comp.knee.value      = 3;
+  comp.ratio.value     = 8;
+  comp.attack.value    = 0.001;
+  comp.release.value   = 0.05;
+  comp.connect(ctx.destination);
+  return comp;
+}
+
+/**
+ * Play a synthesized tactile sound effect at maximum audible volume.
  */
 export function playSound(type: SoundType = 'tap'): void {
   if (!soundEnabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  const now = ctx.currentTime;
+  const now  = ctx.currentTime;
+  const comp = mkCompressor(ctx);
 
   try {
     if (type === 'tap') {
-      // Crisp mechanical/haptic tap (very brief, damped sine)
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      // Crisp mechanical/haptic tap — maxed gain, routed through compressor
+      const osc    = ctx.createOscillator();
+      const gain   = ctx.createGain();
       const filter = ctx.createBiquadFilter();
 
       filter.type = 'lowpass';
@@ -73,63 +89,63 @@ export function playSound(type: SoundType = 'tap'): void {
       osc.frequency.setValueAtTime(950, now);
       osc.frequency.exponentialRampToValueAtTime(120, now + 0.022);
 
-      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.setValueAtTime(1.0, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(comp);
 
       osc.start(now);
       osc.stop(now + 0.025);
     } else if (type === 'pop') {
       // Warm resonant pop for tabs & toggles
-      const osc = ctx.createOscillator();
+      const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'sine';
       osc.frequency.setValueAtTime(540, now);
       osc.frequency.exponentialRampToValueAtTime(180, now + 0.045);
 
-      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.setValueAtTime(1.0, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(comp);
 
       osc.start(now);
       osc.stop(now + 0.05);
     } else if (type === 'toggle') {
       // Subtle double micro-click
-      const osc = ctx.createOscillator();
+      const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(700, now);
       osc.frequency.setValueAtTime(900, now + 0.015);
 
-      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.setValueAtTime(0.9, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(comp);
 
       osc.start(now);
       osc.stop(now + 0.04);
     } else if (type === 'success') {
-      // Gentle two-tone ascending chime (C5 -> E5)
+      // Two-tone ascending chime (C5 -> E5)
       const playTone = (freq: number, startOffset: number) => {
-        const osc = ctx.createOscillator();
+        const osc  = ctx.createOscillator();
         const gain = ctx.createGain();
 
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, now + startOffset);
 
-        gain.gain.setValueAtTime(0.12, now + startOffset);
+        gain.gain.setValueAtTime(0.85, now + startOffset);
         gain.gain.exponentialRampToValueAtTime(0.001, now + startOffset + 0.12);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(comp);
 
         osc.start(now + startOffset);
         osc.stop(now + startOffset + 0.13);
@@ -139,18 +155,18 @@ export function playSound(type: SoundType = 'tap'): void {
       playTone(659.25, 0.08);  // E5
     } else if (type === 'delete') {
       // Low damped thud
-      const osc = ctx.createOscillator();
+      const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'sine';
       osc.frequency.setValueAtTime(260, now);
       osc.frequency.exponentialRampToValueAtTime(60, now + 0.06);
 
-      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.setValueAtTime(1.0, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(comp);
 
       osc.start(now);
       osc.stop(now + 0.07);
