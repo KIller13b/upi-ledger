@@ -5,8 +5,8 @@ import { useRules } from '../hooks';
 import { CATEGORIES } from '../lib/categories';
 import { exportCsv, exportBackup, restoreBackup, wipeAll } from '../lib/export';
 import { toast } from '../lib/toast';
-import { isSoundEnabled, setSoundEnabled, playSound } from '../lib/sound';
-import { Download, Archive, Trash2, Upload, X, Tag, Smartphone, ShieldCheck, HelpCircle, Volume2, VolumeX, Sparkles, Check } from 'lucide-react';
+import { isSoundEnabled, setSoundEnabled, isHapticsEnabled, setHapticsEnabled, playSound } from '../lib/sound';
+import { Download, Archive, Trash2, Upload, X, Tag, Smartphone, ShieldCheck, HelpCircle, Volume2, VolumeX, Sparkles, Check, Vibrate } from 'lucide-react';
 
 const RAISED    = '7px 7px 16px rgba(163,177,198,0.55), -7px -7px 16px rgba(255,255,255,0.85)';
 const RAISED_SM = '5px 5px 12px rgba(163,177,198,0.55), -5px -5px 12px rgba(255,255,255,0.85)';
@@ -48,7 +48,8 @@ function SectionHeader({ icon, title, sub }: { icon: React.ReactNode; title: str
 
 export function SettingsView() {
   const { custom, addRule, removeRule } = useRules();
-  const [soundOn, setSoundOn] = useState(isSoundEnabled());
+  const [soundOn,   setSoundOn]   = useState(isSoundEnabled());
+  const [hapticsOn, setHapticsOn] = useState(isHapticsEnabled());
   const counts = useLiveQuery(async () => {
     const [txns, batches] = await Promise.all([db.transactions.count(), db.importBatches.toArray()]);
     return { txns, batches };
@@ -72,6 +73,14 @@ export function SettingsView() {
     else toast('Sound effects muted', 'info');
   };
 
+  const toggleHaptics = () => {
+    const next = !hapticsOn;
+    setHapticsOn(next);
+    setHapticsEnabled(next);
+    if (next) { playSound('success'); toast('Haptics enabled', 'success'); }
+    else toast('Haptics disabled', 'info');
+  };
+
   return (
     <div className="space-y-5">
       {/* ── Sound & Feedback ── */}
@@ -79,17 +88,15 @@ export function SettingsView() {
         <SectionHeader
           icon={soundOn ? <Volume2 size={17} strokeWidth={2} style={{ color: H2 }} /> : <VolumeX size={17} strokeWidth={2} style={{ color: H3 }} />}
           title="Sound & feedback"
-          sub="Tactile acoustic feedback on interactions"
+          sub="Acoustic + haptic feedback on every interaction"
         />
 
-        {/* Toggle row */}
+        {/* Sound toggle */}
         <div style={{ background: BASE, borderRadius: 20, boxShadow: RAISED_SM, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p className="text-xs font-bold" style={{ color: H1 }}>Button Click Sounds</p>
             <p className="text-[11px] font-medium" style={{ color: H3 }}>Acoustic click on taps and navigations</p>
           </div>
-
-          {/* iOS toggle: inset track, raised/accent thumb */}
           <button
             type="button"
             onClick={toggleSound}
@@ -113,6 +120,44 @@ export function SettingsView() {
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
               {soundOn && <Check size={11} color="#fff" strokeWidth={3} />}
+            </div>
+          </button>
+        </div>
+
+        {/* Haptics toggle */}
+        <div style={{ background: BASE, borderRadius: 20, boxShadow: RAISED_SM, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+          <div className="flex items-center gap-3">
+            <span style={{ width: 34, height: 34, borderRadius: 12, background: BASE, boxShadow: RAISED_SM, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Vibrate size={15} strokeWidth={2} style={{ color: hapticsOn ? ACC : H3 }} />
+            </span>
+            <div>
+              <p className="text-xs font-bold" style={{ color: H1 }}>Haptic Feedback</p>
+              <p className="text-[11px] font-medium" style={{ color: H3 }}>Vibration on taps, swipes and confirmations</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleHaptics}
+            data-sound="pop"
+            aria-label="Toggle haptics"
+            style={{
+              width: 52, height: 30, borderRadius: 20,
+              background: BASE, boxShadow: INSET_SM,
+              border: 'none', padding: 4, display: 'flex',
+              alignItems: 'center', cursor: 'pointer', flexShrink: 0
+            }}
+          >
+            <div style={{
+              width: 22, height: 22, borderRadius: 9999,
+              background: hapticsOn ? ACC : BASE,
+              boxShadow: hapticsOn
+                ? '2px 2px 6px rgba(26,158,117,0.35), -1px -1px 4px rgba(255,255,255,0.85)'
+                : RAISED_SM,
+              transform: hapticsOn ? 'translateX(22px)' : 'translateX(0)',
+              transition: 'all 0.22s ease',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              {hapticsOn && <Check size={11} color="#fff" strokeWidth={3} />}
             </div>
           </button>
         </div>

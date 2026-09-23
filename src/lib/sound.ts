@@ -1,23 +1,41 @@
-// Web Audio API tactile sound synthesizer for buttons and interactions.
+// Web Audio API tactile sound synthesizer + Web Vibration API haptics.
 // Operates 100% offline with zero external audio assets.
 
 type SoundType = 'tap' | 'pop' | 'success' | 'delete' | 'toggle';
 
+// ── Audio state ───────────────────────────────────────────────────────────────
 let audioCtx: AudioContext | null = null;
 let soundEnabled = true;
 
-const STORAGE_KEY = 'upi_sound_enabled';
+const STORAGE_KEY         = 'upi_sound_enabled';
+const HAPTICS_STORAGE_KEY = 'upi_haptics_enabled';
 
-// Load initial preference from localStorage if available
+// ── Haptics state ─────────────────────────────────────────────────────────────
+let hapticsEnabled = true;
+
+// Vibration patterns per sound type (ms: on, off, on, …)
+const HAPTIC_PATTERNS: Record<SoundType, number | number[]> = {
+  tap:     8,             // crisp single tick
+  pop:     [12, 0],       // soft single pulse
+  success: [10, 60, 18],  // double-tap: confirm feel
+  delete:  [30],          // heavy thud
+  toggle:  [6, 40, 6],    // subtle double micro-click
+};
+
+function vibrate(pattern: number | number[]) {
+  if (!hapticsEnabled) return;
+  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
+  try { navigator.vibrate(pattern); } catch { /* silently ignore */ }
+}
+
+// Load preferences from localStorage
 if (typeof window !== 'undefined') {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved !== null) {
-      soundEnabled = saved === 'true';
-    }
-  } catch {
-    // Ignore storage errors in restricted contexts
-  }
+    const savedSound    = localStorage.getItem(STORAGE_KEY);
+    const savedHaptics  = localStorage.getItem(HAPTICS_STORAGE_KEY);
+    if (savedSound   !== null) soundEnabled   = savedSound   === 'true';
+    if (savedHaptics !== null) hapticsEnabled = savedHaptics === 'true';
+  } catch { /* ignore */ }
 }
 
 function getAudioContext(): AudioContext | null {
@@ -34,18 +52,20 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
-export function isSoundEnabled(): boolean {
-  return soundEnabled;
-}
+export function isSoundEnabled(): boolean   { return soundEnabled;   }
+export function isHapticsEnabled(): boolean { return hapticsEnabled; }
 
 export function setSoundEnabled(enabled: boolean): void {
   soundEnabled = enabled;
   if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(STORAGE_KEY, String(enabled));
-    } catch {
-      // Ignore storage errors
-    }
+    try { localStorage.setItem(STORAGE_KEY, String(enabled)); } catch { /* ignore */ }
+  }
+}
+
+export function setHapticsEnabled(enabled: boolean): void {
+  hapticsEnabled = enabled;
+  if (typeof window !== 'undefined') {
+    try { localStorage.setItem(HAPTICS_STORAGE_KEY, String(enabled)); } catch { /* ignore */ }
   }
 }
 
@@ -66,8 +86,12 @@ function mkCompressor(ctx: AudioContext): DynamicsCompressorNode {
 
 /**
  * Play a synthesized tactile sound effect at maximum audible volume.
+ * Also triggers the matching haptic vibration pattern via the Vibration API.
  */
 export function playSound(type: SoundType = 'tap'): void {
+  // Fire haptics immediately — independent of whether audio is available
+  vibrate(HAPTIC_PATTERNS[type]);
+
   if (!soundEnabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
