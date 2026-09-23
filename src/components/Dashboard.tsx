@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { TabId } from '../types';
@@ -78,6 +78,17 @@ function TappableCard({
 
 export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
   const txns = useLiveQuery(() => db.transactions.orderBy('ts').toArray(), []);
+
+  /* Dial selection: -1 = nothing highlighted */
+  const [dialSel, setDialSel] = useState<number>(-1);
+  const lastDialSel = useRef<number>(-1);
+
+  const onDialSelect = (idx: number) => {
+    // Only play sound when crossing into a new segment (not on release to -1)
+    if (idx >= 0 && idx !== lastDialSel.current) playSound('tap');
+    lastDialSel.current = idx;
+    setDialSel(idx);
+  };
 
   if (!txns) {
     return <div className="p-12 text-center text-sm font-medium" style={{ color: H3 }}>Loading…</div>;
@@ -248,12 +259,20 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
         <BarChart data={last6} />
       </TappableCard>
 
-      {/* ── Category Breakdown ── */}
+      {/* ── Category Breakdown — donut is an interactive dial ── */}
       <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-bold" style={{ color: H1 }}>Category breakdown</h3>
           <span className="text-[11px] font-semibold" style={{ color: H3 }}>This month</span>
         </div>
+
+        {/* Hint label — shown while no segment active */}
+        <p
+          className="mb-4 text-[10px] font-semibold transition-opacity duration-200"
+          style={{ color: H3, opacity: dialSel >= 0 ? 0 : 1 }}
+        >
+          ↺ drag the ring to explore
+        </p>
 
         {segments.length === 0 ? (
           <div style={{ background: BASE, borderRadius: 20, boxShadow: INSET, padding: '2rem', textAlign: 'center' }}>
@@ -261,40 +280,69 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
           </div>
         ) : (
           <div className="flex items-center gap-5">
-            <DonutChart segments={segments} />
+            {/* Interactive dial */}
+            <DonutChart
+              segments={segments}
+              selected={dialSel}
+              onSelect={onDialSelect}
+            />
 
-            {/* Each category row is individually tappable */}
-            <div className="flex-1 space-y-2">
+            {/* Category rows — highlight syncs with the dial */}
+            <div className="flex-1 space-y-1.5">
               {segments.slice(0, 4).map((s, idx) => {
-                const isTop = idx === 0;
-                const dotColor = isTop ? ACC : MUTED_SEGS[idx - 1] ?? '#94a3b8';
+                const isTop     = idx === 0;
+                const isActive  = dialSel === idx;
+                const dotColor  = isTop ? ACC : MUTED_SEGS[idx - 1] ?? '#94a3b8';
+                const rowShadow = isActive ? INSET_SM : RAISED_SM;
+
                 return (
-                  <TappableCard
+                  <div
                     key={s.label}
-                    sound="tap"
-                    style={{
-                      borderRadius: 14,
-                      boxShadow: RAISED_SM,
-                      padding: '8px 10px',
-                    }}
                     className="flex items-center justify-between text-xs"
+                    style={{
+                      background: BASE,
+                      borderRadius: 14,
+                      boxShadow: rowShadow,
+                      padding: '8px 10px',
+                      transition: 'box-shadow 0.13s ease',
+                    }}
                   >
                     <span className="flex items-center gap-2">
-                      <span style={{ width: 9, height: 9, borderRadius: 9999, background: dotColor, flexShrink: 0 }} />
-                      <span style={{ color: isTop ? H1 : H2, fontWeight: isTop ? 700 : 500 }}>{s.label}</span>
+                      <span style={{
+                        width: 9, height: 9, borderRadius: 9999,
+                        background: dotColor, flexShrink: 0,
+                        transform: isActive ? 'scale(1.5)' : 'scale(1)',
+                        transition: 'transform 0.13s ease'
+                      }} />
+                      <span style={{
+                        color: isActive ? dotColor : (isTop ? H1 : H2),
+                        fontWeight: isActive || isTop ? 700 : 500,
+                        transition: 'color 0.13s ease'
+                      }}>
+                        {s.label}
+                      </span>
                     </span>
-                    <span style={{ color: H1, fontWeight: isTop ? 800 : 600 }} className="tabular-nums">
+                    <span
+                      className="tabular-nums"
+                      style={{
+                        color: isActive ? dotColor : H1,
+                        fontWeight: isActive || isTop ? 800 : 600,
+                        transition: 'color 0.13s ease'
+                      }}
+                    >
                       {fmtRupee(s.value)}
                     </span>
-                  </TappableCard>
+                  </div>
                 );
               })}
 
               {totalCatSpend > segments.slice(0, 4).reduce((a, s) => a + s.value, 0) && (
-                <TappableCard
-                  sound="tap"
-                  style={{ borderRadius: 14, boxShadow: RAISED_SM, padding: '8px 10px' }}
+                <div
                   className="flex items-center justify-between text-xs"
+                  style={{
+                    background: BASE, borderRadius: 14,
+                    boxShadow: RAISED_SM, padding: '8px 10px'
+                  }}
                 >
                   <span className="flex items-center gap-2">
                     <span style={{ width: 9, height: 9, borderRadius: 9999, background: '#cbd5e1', flexShrink: 0 }} />
@@ -303,7 +351,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
                   <span style={{ color: H2, fontWeight: 600 }} className="tabular-nums">
                     {fmtRupee(totalCatSpend - segments.slice(0, 4).reduce((a, s) => a + s.value, 0))}
                   </span>
-                </TappableCard>
+                </div>
               )}
             </div>
           </div>
