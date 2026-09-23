@@ -9,41 +9,42 @@ export function DonutChart({ segments, size = 120, thickness = 14 }: { segments:
   const r = (size - thickness) / 2;
   const c = 2 * Math.PI * r;
   let offset = 0;
-  if (total === 0) {
-    return (
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+
+  return (
+    <div className="relative flex items-center justify-center p-1.5 rounded-full neu-sunken">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        {/* Recessed track background */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="#1e293b"
+          stroke="#090f1b"
           strokeWidth={thickness}
         />
+        {total > 0 &&
+          segments.map((s, i) => {
+            const frac = s.value / total;
+            const dash = frac * c;
+            const el = (
+              <circle
+                key={i}
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={thickness}
+                strokeDasharray={`${dash} ${c - dash}`}
+                strokeDashoffset={-offset}
+                strokeLinecap="round"
+                className="transition-all duration-300"
+              />
+            );
+            offset += dash;
+            return el;
+          })}
       </svg>
-    );
-  }
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-      {segments.map((s, i) => {
-        const frac = s.value / total;
-        const dash = frac * c;
-        const el = (
-          <circle
-            key={i}
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            fill="none"
-            stroke={s.color}
-            strokeWidth={thickness}
-            strokeDasharray={`${dash} ${c - dash}`}
-            strokeDashoffset={-offset}
-          />
-        );
-        offset += dash;
-        return el;
-      })}
-    </svg>
+    </div>
   );
 }

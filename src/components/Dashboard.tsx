@@ -17,20 +17,21 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
   const active = txns.filter((t) => !t.failed);
   if (active.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 px-8 pt-20 pb-40 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
-          <Wallet size={30} />
+      <div className="flex flex-col items-center justify-center gap-4 px-6 pt-16 pb-40 text-center">
+        <div className="neu-card flex h-20 w-20 items-center justify-center rounded-3xl text-emerald-400">
+          <Wallet size={34} />
         </div>
-        <h1 className="text-xl font-semibold text-slate-100">Welcome to UPI Ledger</h1>
-        <p className="max-w-xs text-sm text-slate-400">
+        <h1 className="text-xl font-bold text-slate-100">Welcome to UPI Ledger</h1>
+        <p className="max-w-xs text-sm text-slate-400 leading-relaxed">
           Import a Google Pay or bank statement to see your balance, spending and trends. Everything stays on this phone.
         </p>
-        <div className="flex items-center gap-1.5 text-xs text-emerald-400/80">
+        <div className="neu-sunken flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs text-emerald-400">
           <ShieldCheck size={14} /> 100% private and offline
         </div>
         <button
           onClick={() => onNavigate('import')}
-          className="mt-2 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950 shadow-lg shadow-emerald-500/20"
+          data-sound="pop"
+          className="neu-btn-primary mt-2 inline-flex items-center gap-2 rounded-2xl px-6 py-3 font-semibold text-slate-950 active:scale-95"
         >
           <Upload size={18} /> Import statement
         </button>
@@ -66,7 +67,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
 
   const lastWithBalance = [...active].reverse().find((t) => t.balance != null);
   const balance = lastWithBalance
-    ? lastWithBalance.balance as number
+    ? (lastWithBalance.balance as number)
     : active.reduce((s, t) => s + (t.type === 'credit' ? t.amount : -t.amount), 0);
 
   const segments = [...catMap.entries()]
@@ -90,49 +91,69 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-5">
-        <div className="flex items-center gap-2 text-slate-400">
-          <Wallet size={16} className="text-emerald-400" />
-          <span className="text-xs font-medium uppercase tracking-wider">Current balance</span>
+      {/* Current Balance Neumorphic Card */}
+      <div className="neu-card rounded-2xl p-5 relative overflow-hidden">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-slate-400">
+            <div className="neu-sunken flex h-7 w-7 items-center justify-center rounded-lg text-emerald-400">
+              <Wallet size={15} />
+            </div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Current balance</span>
+          </div>
+          <div className="neu-sunken rounded-full px-2.5 py-0.5 text-[10px] font-medium text-emerald-400">
+            Live
+          </div>
         </div>
-        <div className="mt-2 text-4xl font-bold tracking-tight text-slate-50">{fmtRupee(balance)}</div>
-        <div className="mt-1 text-xs text-slate-500">
+        <div className="mt-3 text-4xl font-extrabold tracking-tight text-slate-50 drop-shadow-sm">
+          {fmtRupee(balance)}
+        </div>
+        <div className="mt-1.5 text-xs text-slate-400">
           {lastWithBalance
             ? `as of ${monthLabel(monthKey(lastWithBalance.date))} statement`
             : 'estimated from your entries'}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      {/* Monthly In/Out Grid */}
+      <div className="grid grid-cols-2 gap-3.5">
+        <div className="neu-card rounded-2xl p-4">
           <div className="flex items-center gap-1.5 text-slate-400">
-            <TrendingDown size={14} className="text-red-400" />
-            <span className="text-xs">Spent this month</span>
+            <div className="neu-sunken flex h-6 w-6 items-center justify-center rounded-md text-red-400">
+              <TrendingDown size={13} />
+            </div>
+            <span className="text-xs font-medium">Spent this month</span>
           </div>
-          <div className="mt-1.5 text-xl font-bold text-red-400">{fmtRupee(spent)}</div>
-          <div className="mt-0.5 text-[10px] text-slate-500">
+          <div className="mt-2 text-xl font-bold text-red-400 drop-shadow-sm">{fmtRupee(spent)}</div>
+          <div className="mt-1 text-[10px] text-slate-400">
             {delta != null ? (deltaPct === 0 ? 'same as last month' : delta) : 'no data for last month'}
           </div>
         </div>
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+
+        <div className="neu-card rounded-2xl p-4">
           <div className="flex items-center gap-1.5 text-slate-400">
-            <TrendingUp size={14} className="text-emerald-400" />
-            <span className="text-xs">Received this month</span>
+            <div className="neu-sunken flex h-6 w-6 items-center justify-center rounded-md text-emerald-400">
+              <TrendingUp size={13} />
+            </div>
+            <span className="text-xs font-medium">Received this month</span>
           </div>
-          <div className="mt-1.5 text-xl font-bold text-emerald-400">{fmtRupee(received)}</div>
-          <div className="mt-0.5 text-[10px] text-slate-500">from refunds, income, transfers</div>
+          <div className="mt-2 text-xl font-bold text-emerald-400 drop-shadow-sm">{fmtRupee(received)}</div>
+          <div className="mt-1 text-[10px] text-slate-400">from refunds, income, transfers</div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      {/* 6 Months Spending Chart Card */}
+      <div className="neu-card rounded-2xl p-4">
         <div className="mb-3 text-sm font-semibold text-slate-200">Spending — last 6 months</div>
         <BarChart data={last6} />
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      {/* Category Breakdown Card */}
+      <div className="neu-card rounded-2xl p-4">
         <div className="mb-3 text-sm font-semibold text-slate-200">This month by category</div>
         {segments.length === 0 ? (
-          <div className="py-4 text-center text-xs text-slate-500">No spending recorded this month yet.</div>
+          <div className="neu-sunken rounded-xl py-6 text-center text-xs text-slate-400">
+            No spending recorded this month yet.
+          </div>
         ) : (
           <div className="flex items-center gap-4">
             <DonutChart segments={segments} />
@@ -140,18 +161,18 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
               {segments.slice(0, 4).map((s) => (
                 <div key={s.label} className="flex items-center justify-between gap-2 text-xs">
                   <span className="flex items-center gap-1.5 text-slate-300">
-                    <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+                    <span className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ background: s.color }} />
                     {s.label}
                   </span>
-                  <span className="font-medium text-slate-100">{fmtRupee(s.value)}</span>
+                  <span className="font-semibold text-slate-100">{fmtRupee(s.value)}</span>
                 </div>
               ))}
               {totalCatSpend > segments.slice(0, 4).reduce((a, s) => a + s.value, 0) && (
-                <div className="flex items-center justify-between text-xs text-slate-500">
+                <div className="flex items-center justify-between text-xs text-slate-400">
                   <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-slate-600" /> Others
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-600" /> Others
                   </span>
-                  <span>
+                  <span className="font-medium">
                     {fmtRupee(totalCatSpend - segments.slice(0, 4).reduce((a, s) => a + s.value, 0))}
                   </span>
                 </div>

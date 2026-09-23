@@ -21,14 +21,13 @@ export function ReviewTable({
   const pages = Math.max(1, Math.ceil(cands.length / per));
   const cur = cands.slice(page * per, page * per + per);
 
-  const label =
-    'block text-[10px] uppercase tracking-wide text-slate-500';
+  const label = 'block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1';
   const input =
-    'w-full rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5 text-xs text-slate-100 focus:border-emerald-500 focus:outline-none';
+    'neu-input w-full rounded-xl px-2.5 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none';
 
   return (
     <div>
-      <div className="mb-2 space-y-1">
+      <div className="mb-3 space-y-2">
         {cur.map((c, slot) => {
           const i = page * per + slot;
           const open = expanded.has(i);
@@ -36,43 +35,61 @@ export function ReviewTable({
           return (
             <div
               key={i}
-              className={`overflow-hidden rounded-lg border ${c.sel ? 'border-slate-700 bg-slate-900/60' : 'border-slate-800 bg-slate-900/30 opacity-70'}`}
+              className={`neu-card overflow-hidden rounded-2xl transition-all ${
+                c.sel ? 'border-emerald-500/30' : 'opacity-60'
+              }`}
             >
               <div className="flex items-stretch">
                 <button
-                  className={`flex w-10 items-center justify-center border-r ${c.sel ? 'border-slate-700 text-emerald-400' : 'border-slate-800 text-slate-600'}`}
+                  data-sound="pop"
+                  className={`flex w-12 items-center justify-center border-r border-white/[0.04] transition-colors ${
+                    c.sel ? 'text-emerald-400' : 'text-slate-600'
+                  }`}
                   onClick={() => onPatch(i, { ...c, sel: !c.sel })}
                 >
-                  <span className={`h-5 w-5 rounded-md border-2 ${c.sel ? 'border-emerald-500 bg-emerald-500' : 'border-slate-600'}`}>
+                  <span
+                    className={`flex h-6 w-6 items-center justify-center rounded-lg transition-all ${
+                      c.sel ? 'neu-btn-primary text-slate-950' : 'neu-sunken border border-slate-700'
+                    }`}
+                  >
                     {c.sel && (
-                      <svg viewBox="0 0 24 24" className="p-0.5 text-slate-950">
-                        <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-[3]" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
                   </span>
                 </button>
 
-                <div className="flex flex-1 flex-col gap-0.5 px-3 py-2" onClick={() => onToggleExpand(i)}>
+                <div
+                  className="flex flex-1 flex-col gap-1 px-3.5 py-3 cursor-pointer"
+                  onClick={() => onToggleExpand(i)}
+                >
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold uppercase ${c.tx.type === 'debit' ? 'text-red-400' : 'text-emerald-400'}`}>
+                    <span
+                      className={`text-[10px] font-extrabold uppercase tracking-wide ${
+                        c.tx.type === 'debit' ? 'text-red-400' : 'text-emerald-400'
+                      }`}
+                    >
                       {c.tx.type === 'debit' ? 'Out' : 'In'}
                     </span>
-                    <span className="text-sm font-semibold text-slate-100">
+                    <span className="text-sm font-bold text-slate-100">
                       {c.tx.type === 'debit' ? '−' : '+'}
                       {fmtRupee(c.tx.amount)}
                     </span>
                     {bad && <AlertTriangle size={12} className="text-amber-400" />}
-                    <span className="ml-auto flex items-center gap-1 text-[10px] text-slate-500">
+                    <span className="ml-auto flex items-center gap-1 text-[11px] text-slate-400">
                       {fmtDate(c.tx.date)}
-                      {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                      {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </span>
                   </div>
-                  <div className="truncate text-xs text-slate-300">{c.tx.description || '\u2014'}</div>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                    <span>{c.tx.category}</span>
+                  <div className="truncate text-xs font-medium text-slate-300">{c.tx.description || '\u2014'}</div>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                    <span className="neu-sunken rounded-md px-1.5 py-0.5 font-medium text-slate-300">
+                      {c.tx.category}
+                    </span>
                     {c.dup && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-amber-400">
-                        <Copy size={9} /> likely duplicate
+                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-1.5 py-0.5 font-medium text-amber-400">
+                        <Copy size={9} /> duplicate
                       </span>
                     )}
                   </div>
@@ -80,7 +97,7 @@ export function ReviewTable({
               </div>
 
               {open && (
-                <div className="grid grid-cols-2 gap-2 border-t border-slate-800 px-3 py-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2.5 border-t border-white/[0.04] p-3.5 sm:grid-cols-3">
                   <div>
                     <span className={label}>Date (YYYY-MM-DD)</span>
                     <input
@@ -101,7 +118,9 @@ export function ReviewTable({
                       min="0"
                       step="0.01"
                       value={c.tx.amount}
-                      onChange={(e) => onPatch(i, { ...c, tx: { ...c.tx, amount: Math.abs(parseFloat(e.target.value) || 0) } })}
+                      onChange={(e) =>
+                        onPatch(i, { ...c, tx: { ...c.tx, amount: Math.abs(parseFloat(e.target.value) || 0) } })
+                      }
                     />
                   </div>
                   <div>
@@ -131,7 +150,7 @@ export function ReviewTable({
                       <option value="credit">Money in</option>
                     </select>
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
+                  <div className="col-span-2 sm:col-span-2">
                     <span className={label}>Category</span>
                     <select
                       className={input}
@@ -162,11 +181,11 @@ export function ReviewTable({
                     />
                   </div>
                   {c.tx.balance == null && (
-                    <div className="flex items-end">
-                      <label className="flex items-center gap-1.5 text-xs text-slate-400">
+                    <div className="flex items-center pt-5">
+                      <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 accent-red-500"
+                          className="h-4 w-4 rounded accent-red-500 cursor-pointer"
                           checked={c.tx.failed}
                           onChange={(e) => onPatch(i, { ...c, tx: { ...c.tx, failed: e.target.checked } })}
                         />
@@ -175,8 +194,8 @@ export function ReviewTable({
                     </div>
                   )}
                   {c.note && (
-                    <div className="col-span-2 flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 sm:col-span-3">
-                      <AlertTriangle size={10} /> {c.note}
+                    <div className="col-span-2 flex items-center gap-1.5 rounded-xl bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-300 sm:col-span-3">
+                      <AlertTriangle size={12} /> {c.note}
                     </div>
                   )}
                 </div>
@@ -187,21 +206,23 @@ export function ReviewTable({
       </div>
 
       {pages > 1 && (
-        <div className="flex items-center justify-between px-1 pb-1 text-xs text-slate-400">
+        <div className="flex items-center justify-between px-1 pt-2 pb-1 text-xs text-slate-400">
           <button
             disabled={page === 0}
+            data-sound="pop"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="rounded-lg bg-slate-800 px-3 py-1.5 disabled:opacity-40"
+            className="neu-btn rounded-xl px-4 py-2 font-medium disabled:opacity-30"
           >
             Prev
           </button>
-          <span>
+          <span className="font-medium text-slate-400">
             Page {page + 1} / {pages}
           </span>
           <button
             disabled={page >= pages - 1}
+            data-sound="pop"
             onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
-            className="rounded-lg bg-slate-800 px-3 py-1.5 disabled:opacity-40"
+            className="neu-btn rounded-xl px-4 py-2 font-medium disabled:opacity-30"
           >
             Next
           </button>

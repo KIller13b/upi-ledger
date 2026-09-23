@@ -49,23 +49,24 @@ export function TransactionsView() {
 
   return (
     <div>
-      <div className="sticky top-0 z-10 -mx-4 space-y-2 bg-[#0b1220]/95 px-4 pb-2 pt-1 backdrop-blur">
+      <div className="sticky top-0 z-10 -mx-4 space-y-3 bg-[#0c1424]/95 px-4 pb-3 pt-1 backdrop-blur-md">
         <div className="relative">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search transactions, merchants, UPI ref"
-            className="w-full rounded-xl border border-slate-800 bg-slate-900 py-2.5 pl-9 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+            className="neu-input w-full rounded-2xl py-2.5 pl-10 pr-3.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 text-xs">
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 text-xs">
           {(['all', 'debit', 'credit'] as const).map((k) => (
             <button
               key={k}
               onClick={() => setOnly(k)}
-              className={`shrink-0 rounded-full px-3 py-1.5 font-medium capitalize ${
-                only === k ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+              data-sound="pop"
+              className={`shrink-0 rounded-xl px-3.5 py-1.5 font-medium capitalize transition-all ${
+                only === k ? 'neu-pill-active font-semibold' : 'neu-pill text-slate-300'
               }`}
             >
               {k}
@@ -74,11 +75,12 @@ export function TransactionsView() {
           <select
             value={majorMon}
             onChange={(e) => setMajorMon(e.target.value)}
-            className="ml-auto shrink-0 rounded-full border-0 bg-slate-800 px-3 py-1.5 font-medium text-slate-300 focus:outline-none"
+            data-sound="tap"
+            className="neu-input ml-auto shrink-0 rounded-xl px-3 py-1.5 font-medium text-slate-300 focus:outline-none text-xs"
           >
             <option value="all">All months</option>
             {months.map((m) => (
-              <option key={m} value={m}>
+              <option key={m} value={m} className="bg-slate-900">
                 {monthLabel(m)}
               </option>
             ))}
@@ -87,45 +89,49 @@ export function TransactionsView() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="py-16 text-center text-sm text-slate-500">No transactions found.</div>
+        <div className="neu-card my-6 rounded-2xl py-16 text-center text-sm text-slate-400">
+          No transactions found.
+        </div>
       ) : (
         <div className="space-y-5 pt-1">
           {grouped.map(([mk, list]) => (
             <div key={mk}>
-              <div className="mb-1.5 flex items-baseline justify-between px-0.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{monthLabel(mk)}</span>
+              <div className="mb-2 flex items-baseline justify-between px-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{monthLabel(mk)}</span>
+                <span className="text-[11px] text-slate-500">{list.length} transactions</span>
               </div>
-              <div className="overflow-hidden rounded-xl border border-slate-800/70 bg-slate-900/50">
+              <div className="neu-card overflow-hidden rounded-2xl">
                 {list.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setEditing(t)}
-                    className="flex w-full items-center gap-3 border-b border-slate-800/60 px-3 py-2.5 text-left last:border-0 active:bg-slate-800/40"
+                    data-sound="pop"
+                    className="neu-row flex w-full items-center gap-3.5 border-b border-white/[0.04] px-4 py-3 text-left last:border-0"
                   >
                     <div
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                        t.type === 'debit' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'
+                      className={`neu-sunken flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                        t.type === 'debit' ? 'text-red-400' : 'text-emerald-400'
                       }`}
                     >
                       {t.type === 'debit' ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="truncate text-sm text-slate-100">{t.description}</span>
+                        <span className="truncate text-sm font-medium text-slate-100">{t.description}</span>
                         {t.failed && <AlertTriangle size={12} className="shrink-0 text-amber-400" />}
                       </div>
-                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-500">
+                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-400">
                         <span>{fmtDate(t.date)}</span>
                         <span
-                          className="rounded-full px-1.5 py-0.5 text-[10px] font-medium text-slate-200"
-                          style={{ background: categoryColor(t.category) + '22' }}
+                          className="neu-sunken rounded-md px-1.5 py-0.5 text-[10px] font-medium text-slate-200"
+                          style={{ color: categoryColor(t.category) }}
                         >
                           {t.category}
                         </span>
                       </div>
                     </div>
                     <div
-                      className={`shrink-0 text-sm font-semibold ${
+                      className={`shrink-0 text-sm font-bold ${
                         t.type === 'debit' ? 'text-red-400' : 'text-emerald-400'
                       }`}
                     >
@@ -140,11 +146,14 @@ export function TransactionsView() {
         </div>
       )}
 
+      {/* Floating Action Button */}
       <button
         onClick={() => setAdding(true)}
-        className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 active:scale-95"
+        data-sound="pop"
+        className="neu-fab fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full text-slate-950"
+        title="Add transaction"
       >
-        <Plus size={26} />
+        <Plus size={26} strokeWidth={2.6} />
       </button>
 
       {(editing || adding) && (
