@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { Transaction } from '../types';
 import { fmtRupee, fmtDate, monthKey, monthLabel } from '../lib/format';
-import { Search, Plus, AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { playSound } from '../lib/sound';
+import { Search, Plus, AlertTriangle, ArrowDownLeft, ArrowUpRight, Trash2 } from 'lucide-react';
 import { TxModal } from './TxModal';
 
 const RAISED    = '7px 7px 16px rgba(163,177,198,0.55), -7px -7px 16px rgba(255,255,255,0.85)';
@@ -15,6 +16,69 @@ const H1   = '#2f3542';
 const H2   = '#5b6272';
 const H3   = '#8991a0';
 const ACC  = '#1a9e75';
+
+const SWIPE_THRESHOLD = 72; // px to fully reveal delete button
+
+function SwipeRow({ onDelete, children }: { onDelete: () => void; children: React.ReactNode }) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    startX.current = e.clientX;
+    setDragging(true);
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX.current;
+    setOffsetX(Math.max(-SWIPE_THRESHOLD, Math.min(0, dx)));
+  };
+  const handlePointerUp = () => {
+    setDragging(false);
+    // Snap: if dragged more than 55% of threshold → stay open, else snap back
+    if (offsetX <= -SWIPE_THRESHOLD * 0.55) setOffsetX(-SWIPE_THRESHOLD);
+    else setOffsetX(0);
+  };
+
+  const handleDelete = () => {
+    setOffsetX(0);
+    playSound('delete');
+    onDelete();
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Red delete button revealed by swipe */}
+      <div
+        className="absolute right-0 top-0 bottom-0 flex items-center justify-center"
+        style={{ width: SWIPE_THRESHOLD, background: '#dc2626', borderRadius: '0 18px 18px 0' }}
+      >
+        <button
+          onClick={handleDelete}
+          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 10 }}
+          aria-label="Delete transaction"
+        >
+          <Trash2 size={20} strokeWidth={2.2} />
+        </button>
+      </div>
+      {/* Sliding row content */}
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: dragging ? 'none' : 'transform 0.2s ease',
+          touchAction: 'pan-y',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function TransactionsView() {
   const [query,    setQuery]    = useState('');
@@ -140,50 +204,43 @@ export function TransactionsView() {
               </div>
 
               {/* Raised card containing all rows for this month */}
-              <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '0.5rem' }}>
+              <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, overflow: 'hidden' }}>
                 {list.map((t, idx) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setEditing(t)}
-                    data-sound="pop"
-                    className="neu-row flex w-full items-center gap-3.5 px-4 py-3 text-left"
-                    style={{
-                      borderBottom: idx < list.length - 1 ? '1px solid rgba(163,177,198,0.18)' : 'none'
-                    }}
-                  >
-                    {/* Raised rounded-square icon container */}
-                    <span style={{
-                      width: 42, height: 42, borderRadius: 14, flexShrink: 0,
-                      background: BASE, boxShadow: RAISED_SM,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      {t.type === 'debit'
-                        ? <ArrowUpRight   size={18} strokeWidth={2.3} color={H2} />
-                        : <ArrowDownLeft  size={18} strokeWidth={2.3} color={ACC} />}
-                    </span>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-sm font-bold" style={{ color: H1 }}>{t.description}</span>
-                        {t.failed && <AlertTriangle size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-2" style={{ fontSize: '0.68rem', color: H3, fontWeight: 500 }}>
-                        <span>{fmtDate(t.date)}</span>
-                        <span>·</span>
-                        <span>{t.category}</span>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <span
-                        className="text-sm font-extrabold tabular-nums"
-                        style={{ color: H1 }}
-                      >
-                        {t.type === 'debit' ? '−' : '+'}
-                        {fmtRupee(t.amount)}
+                  <SwipeRow key={t.id} onDelete={() => db.transactions.delete(t.id!)}>
+                    <button
+                      onClick={() => setEditing(t)}
+                      data-sound="pop"
+                      className="neu-row flex w-full items-center gap-3.5 px-4 py-3 text-left"
+                      style={{ borderBottom: idx < list.length - 1 ? '1px solid rgba(163,177,198,0.18)' : 'none' }}
+                    >
+                      {/* Raised rounded-square icon container */}
+                      <span style={{
+                        width: 42, height: 42, borderRadius: 14, flexShrink: 0,
+                        background: BASE, boxShadow: RAISED_SM,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        {t.type === 'debit'
+                          ? <ArrowUpRight   size={18} strokeWidth={2.3} color={H2} />
+                          : <ArrowDownLeft  size={18} strokeWidth={2.3} color={ACC} />}
                       </span>
-                    </div>
-                  </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-sm font-bold" style={{ color: H1 }}>{t.description}</span>
+                          {t.failed && <AlertTriangle size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-2" style={{ fontSize: '0.68rem', color: H3, fontWeight: 500 }}>
+                          <span>{fmtDate(t.date)}</span>
+                          <span>·</span>
+                          <span>{t.category}</span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <span className="text-sm font-extrabold tabular-nums" style={{ color: H1 }}>
+                          {t.type === 'debit' ? '−' : '+'}{fmtRupee(t.amount)}
+                        </span>
+                      </div>
+                    </button>
+                  </SwipeRow>
                 ))}
               </div>
             </div>

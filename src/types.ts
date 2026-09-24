@@ -30,4 +30,11 @@ export interface ImportBatch {
   skipped: number;
 }
 
+export interface Budget {
+  id?: number;
+  category: string;   // matches Transaction.category
+  amount: number;     // monthly spend cap in ₹
+  createdAt: number;
+}
+
 export type TabId = 'dashboard' | 'transactions' | 'import' | 'settings';

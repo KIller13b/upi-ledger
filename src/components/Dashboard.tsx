@@ -5,8 +5,10 @@ import type { TabId } from '../types';
 import { todayStr, monthKey, monthLabel, fmtRupee } from '../lib/format';
 import { DonutChart } from './DonutChart';
 import { BarChart } from './BarChart';
+import { HeatmapChart } from './HeatmapChart';
+import { detectRecurring } from '../lib/subscriptions';
 import { playSound } from '../lib/sound';
-import { Wallet, TrendingDown, TrendingUp, Upload, ShieldCheck } from 'lucide-react';
+import { Wallet, TrendingDown, TrendingUp, Upload, ShieldCheck, Store, Repeat, PiggyBank } from 'lucide-react';
 
 const RAISED    = '7px 7px 16px rgba(163,177,198,0.55), -7px -7px 16px rgba(255,255,255,0.85)';
 const RAISED_SM = '5px 5px 12px rgba(163,177,198,0.55), -5px -5px 12px rgba(255,255,255,0.85)';
@@ -205,7 +207,51 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
   const totalCatSpend = [...catMap.values()].reduce((a, b) => a + b, 0);
   const delta = deltaPct == null ? null : deltaPct > 0 ? `+${deltaPct}% vs last month` : `${deltaPct}% vs last month`;
 
+  /* ── Savings rate ── */
+  const totalFlow = received + spent;
+  const savingsRate = totalFlow > 0 ? Math.round((received / totalFlow) * 100) : null;
+
+  /* ── Top merchants this month ── */
+  const merchantMap = new Map<string, number>();
+  for (const t of active) {
+    if (t.type === 'debit' && monthKey(t.date) === thisMon) {
+      const key = t.description.slice(0, 32);
+      merchantMap.set(key, (merchantMap.get(key) ?? 0) + t.amount);
+    }
+  }
+  const topMerchants = [...merchantMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([label, value]) => ({ label, value }));
+
+  /* ── Daily heatmap (last 35 days) ── */
+  const dayMap = new Map<string, number>();
+  for (const t of active) {
+    if (t.type === 'debit') dayMap.set(t.date, (dayMap.get(t.date) ?? 0) + t.amount);
+  }
+  const heatmapData: Array<{ date: string; value: number }> = [];
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    heatmapData.push({ date: ds, value: dayMap.get(ds) ?? 0 });
+  }
+
+  /* ── Monthly dual bar data (spend + income) ── */
+  const monthlyDataFull: Array<{ label: string; value: number; income: number; isCurrent: boolean }> = [];
+  const anchor3 = new Date(); anchor3.setDate(1);
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(anchor3.getFullYear(), anchor3.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const sp = active.filter((t) => t.type === 'debit'   && t.date.startsWith(key)).reduce((s, t) => s + t.amount, 0);
+    const ic = active.filter((t) => t.type === 'credit'  && t.date.startsWith(key)).reduce((s, t) => s + t.amount, 0);
+    monthlyDataFull.push({ label: monthLabel(key), value: sp, income: ic, isCurrent: i === 0 });
+  }
+
+  /* ── Recurring charges ── */
+  const recurring = detectRecurring(active);
+
   const MUTED_SEGS = ['#94a3b8', '#64748b', '#b0bec5', '#78909c', '#90a4ae'];
+
 
   return (
     <div className="space-y-5">
@@ -326,8 +372,9 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
         </div>
 
         <BarChart
-          data={chartView === 'weekly' ? weeklyData : monthlyData}
+          data={chartView === 'weekly' ? weeklyData : monthlyDataFull}
           highlightLast
+          showIncome={chartView === 'monthly'}
         />
       </TappableCard>
 
@@ -429,6 +476,91 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
           </div>
         )}
       </div>
+
+      {/* ── Savings Rate ── */}
+      {savingsRate !== null && (
+        <TappableCard sound="success" style={{ borderRadius: 26, boxShadow: RAISED_SM, padding: '1.25rem' }}>
+          <div className="flex items-center gap-2.5 mb-2">
+            <Icon16 size={34}><PiggyBank size={15} color={savingsRate > 20 ? ACC : '#dc2626'} strokeWidth={2.2} /></Icon16>
+            <span className="text-xs font-semibold" style={{ color: H2 }}>Savings rate this month</span>
+          </div>
+          <div className="text-3xl font-extrabold tracking-tight" style={{ color: savingsRate > 20 ? ACC : '#dc2626' }}>
+            {savingsRate}%
+          </div>
+          <div className="mt-1 text-[11px] font-medium" style={{ color: H3 }}>
+            {savingsRate > 30 ? '🎉 Excellent discipline!' : savingsRate > 10 ? 'Try to save a little more' : 'Expenses are exceeding income'}
+          </div>
+        </TappableCard>
+      )}
+
+      {/* ── Daily Heatmap ── */}
+      <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: H1 }}>Daily spending</h3>
+          <span className="text-[11px] font-semibold" style={{ color: H3 }}>Last 5 weeks</span>
+        </div>
+        <HeatmapChart data={heatmapData} />
+      </div>
+
+      {/* ── Top Merchants ── */}
+      {topMerchants.length > 0 && (
+        <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <Icon16 size={36}><Store size={16} color={H2} strokeWidth={2} /></Icon16>
+            <h3 className="text-sm font-bold" style={{ color: H1 }}>Top merchants</h3>
+            <span className="ml-auto text-[11px] font-semibold" style={{ color: H3 }}>This month</span>
+          </div>
+          <div className="space-y-3">
+            {topMerchants.map((m, i) => {
+              const pct = Math.round((m.value / (topMerchants[0]?.value || 1)) * 100);
+              return (
+                <div key={i}>
+                  <div className="flex items-center justify-between text-xs mb-1.5">
+                    <span className="font-semibold truncate max-w-[55%]" style={{ color: H1 }}>{m.label}</span>
+                    <span className="font-bold tabular-nums" style={{ color: H2 }}>{fmtRupee(m.value)}</span>
+                  </div>
+                  <div style={{ background: BASE, borderRadius: 9999, boxShadow: INSET_SM, height: 7 }}>
+                    <div style={{
+                      height: '100%', borderRadius: 9999,
+                      width: `${pct}%`,
+                      background: i === 0 ? ACC : '#94a3b8',
+                      transition: 'width 0.4s ease'
+                    }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Recurring Charges ── */}
+      {recurring.length > 0 && (
+        <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <Icon16 size={36}><Repeat size={16} color={H2} strokeWidth={2} /></Icon16>
+            <h3 className="text-sm font-bold" style={{ color: H1 }}>Recurring charges</h3>
+            <span className="ml-auto text-[11px] font-semibold" style={{ color: H3 }}>{recurring.length} detected</span>
+          </div>
+          <div className="space-y-2">
+            {recurring.map((r, i) => (
+              <div key={i} style={{ background: BASE, borderRadius: 14, boxShadow: RAISED_SM, padding: '10px 12px' }}
+                className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: H1 }}>{r.label}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: H3 }}>
+                    {r.frequency === 'monthly' ? 'Monthly' : 'Irregular'} · {r.count}× · last {r.lastDate}
+                  </p>
+                </div>
+                <span className="text-sm font-extrabold tabular-nums ml-3 shrink-0" style={{ color: H1 }}>
+                  {fmtRupee(r.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
