@@ -83,6 +83,9 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
   const [dialSel, setDialSel] = useState<number>(-1);
   const lastDialSel = useRef<number>(-1);
 
+  /* Chart view toggle: 'weekly' | 'monthly' */
+  const [chartView, setChartView] = useState<'weekly' | 'monthly'>('weekly');
+
   const onDialSelect = (idx: number) => {
     // Only play sound when crossing into a new segment (not on release to -1)
     if (idx >= 0 && idx !== lastDialSel.current) playSound('tap');
@@ -162,12 +165,40 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
     .slice(0, 5)
     .map(([label, value]) => ({ label, value }));
 
-  const last6: Array<{ label: string; value: number }> = [];
+  /* ── Weekly: last 8 weeks (Mon→Sun buckets) ── */
+  // Find the Monday of the current week
+  const todayDate = new Date();
+  const dayOfWeek = todayDate.getDay(); // 0=Sun … 6=Sat
+  const mondayOffset = (dayOfWeek + 6) % 7; // days since last Monday
+  const thisMonday = new Date(todayDate);
+  thisMonday.setHours(0, 0, 0, 0);
+  thisMonday.setDate(todayDate.getDate() - mondayOffset);
+
+  const weeklyData: Array<{ label: string; value: number; isCurrent: boolean }> = [];
+  for (let i = 7; i >= 0; i--) {
+    const weekStart = new Date(thisMonday);
+    weekStart.setDate(thisMonday.getDate() - i * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekKey = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+    const weekEndKey = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+    const label = `${weekStart.getDate()} ${weekStart.toLocaleString('en-IN', { month: 'short' })}`;
+    const value = active
+      .filter((t) => t.type === 'debit' && t.date >= weekKey && t.date <= weekEndKey)
+      .reduce((s, t) => s + t.amount, 0);
+    weeklyData.push({ label, value, isCurrent: i === 0 });
+  }
+
+  /* ── Monthly: last 6 months ── */
+  const monthlyData: Array<{ label: string; value: number; isCurrent: boolean }> = [];
   const anchor = new Date(); anchor.setDate(1);
   for (let i = 5; i >= 0; i--) {
     const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    last6.push({ label: monthLabel(key), value: monthSpend.get(key) ?? 0 });
+    const spend = active
+      .filter((t) => t.type === 'debit' && t.date.startsWith(key))
+      .reduce((s, t) => s + t.amount, 0);
+    monthlyData.push({ label: monthLabel(key), value: spend, isCurrent: i === 0 });
   }
 
   const deltaPct = spentPrev > 0 ? Math.round(((spent - spentPrev) / spentPrev) * 100) : null;
@@ -247,16 +278,57 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
         </TappableCard>
       </div>
 
-      {/* ── 6-Month Bar Chart card — tappable, plays toggle ── */}
+      {/* ── Bar Chart — Weekly / Monthly toggle ── */}
       <TappableCard
         sound="toggle"
         style={{ borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-sm font-bold" style={{ color: H1 }}>Spending — last 6 months</h3>
-          <span className="text-[11px] font-semibold" style={{ color: H3 }}>Monthly</span>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: H1 }}>
+            {chartView === 'weekly' ? 'Spending — last 8 weeks' : 'Spending — last 6 months'}
+          </h3>
+
+          {/* W / M pill toggle */}
+          <div
+            className="flex items-center"
+            style={{
+              background: BASE,
+              borderRadius: 9999,
+              boxShadow: INSET_SM,
+              padding: 3,
+              gap: 2
+            }}
+          >
+            {(['weekly', 'monthly'] as const).map((v) => {
+              const active = chartView === v;
+              return (
+                <button
+                  key={v}
+                  onClick={(e) => { e.stopPropagation(); setChartView(v); playSound('pop'); }}
+                  style={{
+                    background: BASE,
+                    borderRadius: 9999,
+                    boxShadow: active ? RAISED_SM : 'none',
+                    border: 'none',
+                    padding: '4px 12px',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    color: active ? ACC : H3,
+                    transition: 'all 0.14s ease',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {v === 'weekly' ? 'W' : 'M'}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <BarChart data={last6} />
+
+        <BarChart
+          data={chartView === 'weekly' ? weeklyData : monthlyData}
+          highlightLast
+        />
       </TappableCard>
 
       {/* ── Category Breakdown — donut is an interactive dial ── */}
