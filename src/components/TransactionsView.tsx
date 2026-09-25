@@ -20,35 +20,55 @@ const ACC  = '#1a9e75';
 const SWIPE_THRESHOLD = 72; // px to fully reveal delete button
 
 function SwipeRow({ onDelete, children }: { onDelete: () => void; children: React.ReactNode }) {
-  const [offsetX, setOffsetX] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const startX = useRef(0);
+  // Use refs for all mutable values accessed inside pointer handlers
+  // to avoid stale-closure bugs with React state
+  const offsetRef  = useRef(0);          // actual current offset (truth)
+  const dragging   = useRef(false);
+  const startX     = useRef(0);
+  const [renderOffset, setRenderOffset] = useState(0); // drives the visual
+  const [isMoving,     setIsMoving]     = useState(false);
+
+  const commit = (newOffset: number, animate: boolean) => {
+    offsetRef.current = newOffset;
+    setIsMoving(!animate);
+    setRenderOffset(newOffset);
+  };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Ignore multi-touch
+    if (dragging.current) return;
     startX.current = e.clientX;
-    setDragging(true);
+    dragging.current = true;
+    setIsMoving(true);
     (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
   };
+
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragging) return;
-    const dx = e.clientX - startX.current;
-    setOffsetX(Math.max(-SWIPE_THRESHOLD, Math.min(0, dx)));
+    if (!dragging.current) return;
+    const dx = e.clientX - startX.current + offsetRef.current;
+    const clamped = Math.max(-SWIPE_THRESHOLD, Math.min(0, dx));
+    offsetRef.current = clamped;
+    setRenderOffset(clamped);
   };
+
   const handlePointerUp = () => {
-    setDragging(false);
-    // Snap: if dragged more than 55% of threshold → stay open, else snap back
-    if (offsetX <= -SWIPE_THRESHOLD * 0.55) setOffsetX(-SWIPE_THRESHOLD);
-    else setOffsetX(0);
+    if (!dragging.current) return;
+    dragging.current = false;
+    // Snap decision based on ref value (never stale)
+    const snap = offsetRef.current <= -SWIPE_THRESHOLD * 0.45
+      ? -SWIPE_THRESHOLD
+      : 0;
+    commit(snap, true);
   };
 
   const handleDelete = () => {
-    setOffsetX(0);
+    commit(0, true);
     playSound('delete');
     onDelete();
   };
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden" style={{ touchAction: 'pan-y' }}>
       {/* Red delete button revealed by swipe */}
       <div
         className="absolute right-0 top-0 bottom-0 flex items-center justify-center"
@@ -67,11 +87,13 @@ function SwipeRow({ onDelete, children }: { onDelete: () => void; children: Reac
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         style={{
-          transform: `translateX(${offsetX}px)`,
-          transition: dragging ? 'none' : 'transform 0.2s ease',
+          transform: `translateX(${renderOffset}px)`,
+          transition: isMoving ? 'none' : 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
           touchAction: 'pan-y',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
         }}
       >
         {children}
