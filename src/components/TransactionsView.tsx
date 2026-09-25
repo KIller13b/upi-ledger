@@ -1,10 +1,9 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { Transaction } from '../types';
 import { fmtRupee, fmtDate, monthKey, monthLabel } from '../lib/format';
-import { playSound } from '../lib/sound';
-import { Search, Plus, AlertTriangle, ArrowDownLeft, ArrowUpRight, Trash2 } from 'lucide-react';
+import { Search, Plus, AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { TxModal } from './TxModal';
 
 const RAISED    = '7px 7px 16px rgba(163,177,198,0.55), -7px -7px 16px rgba(255,255,255,0.85)';
@@ -16,91 +15,6 @@ const H1   = '#2f3542';
 const H2   = '#5b6272';
 const H3   = '#8991a0';
 const ACC  = '#1a9e75';
-
-const SWIPE_THRESHOLD = 72; // px to fully reveal delete button
-
-function SwipeRow({ onDelete, children }: { onDelete: () => void; children: React.ReactNode }) {
-  // Use refs for all mutable values accessed inside pointer handlers
-  // to avoid stale-closure bugs with React state
-  const offsetRef  = useRef(0);          // actual current offset (truth)
-  const dragging   = useRef(false);
-  const startX     = useRef(0);
-  const [renderOffset, setRenderOffset] = useState(0); // drives the visual
-  const [isMoving,     setIsMoving]     = useState(false);
-
-  const commit = (newOffset: number, animate: boolean) => {
-    offsetRef.current = newOffset;
-    setIsMoving(!animate);
-    setRenderOffset(newOffset);
-  };
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Ignore multi-touch
-    if (dragging.current) return;
-    startX.current = e.clientX;
-    dragging.current = true;
-    setIsMoving(true);
-    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current) return;
-    const dx = e.clientX - startX.current + offsetRef.current;
-    const clamped = Math.max(-SWIPE_THRESHOLD, Math.min(0, dx));
-    offsetRef.current = clamped;
-    setRenderOffset(clamped);
-  };
-
-  const handlePointerUp = () => {
-    if (!dragging.current) return;
-    dragging.current = false;
-    // Snap decision based on ref value (never stale)
-    const snap = offsetRef.current <= -SWIPE_THRESHOLD * 0.45
-      ? -SWIPE_THRESHOLD
-      : 0;
-    commit(snap, true);
-  };
-
-  const handleDelete = () => {
-    commit(0, true);
-    playSound('delete');
-    onDelete();
-  };
-
-  return (
-    <div className="relative overflow-hidden" style={{ touchAction: 'pan-y' }}>
-      {/* Red delete button revealed by swipe */}
-      <div
-        className="absolute right-0 top-0 bottom-0 flex items-center justify-center"
-        style={{ width: SWIPE_THRESHOLD, background: '#dc2626', borderRadius: '0 18px 18px 0' }}
-      >
-        <button
-          onClick={handleDelete}
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 10 }}
-          aria-label="Delete transaction"
-        >
-          <Trash2 size={20} strokeWidth={2.2} />
-        </button>
-      </div>
-      {/* Sliding row content */}
-      <div
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        style={{
-          transform: `translateX(${renderOffset}px)`,
-          transition: isMoving ? 'none' : 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
-          touchAction: 'pan-y',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
 
 export function TransactionsView() {
   const [query,    setQuery]    = useState('');
@@ -226,10 +140,10 @@ export function TransactionsView() {
               </div>
 
               {/* Raised card containing all rows for this month */}
-              <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, overflow: 'hidden' }}>
+              <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '0.5rem' }}>
                 {list.map((t, idx) => (
-                  <SwipeRow key={t.id} onDelete={() => db.transactions.delete(t.id!)}>
                     <button
+                      key={t.id}
                       onClick={() => setEditing(t)}
                       data-sound="pop"
                       className="neu-row flex w-full items-center gap-3.5 px-4 py-3 text-left"
@@ -262,7 +176,6 @@ export function TransactionsView() {
                         </span>
                       </div>
                     </button>
-                  </SwipeRow>
                 ))}
               </div>
             </div>
