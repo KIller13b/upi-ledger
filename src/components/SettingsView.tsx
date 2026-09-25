@@ -5,8 +5,10 @@ import { useRules } from '../hooks';
 import { CATEGORIES } from '../lib/categories';
 import { exportCsv, exportBackup, restoreBackup, wipeAll } from '../lib/export';
 import { toast } from '../lib/toast';
+import { setBudget, deleteBudget } from '../lib/budgets';
 import { isSoundEnabled, setSoundEnabled, isHapticsEnabled, setHapticsEnabled, playSound } from '../lib/sound';
-import { Download, Archive, Trash2, Upload, X, Tag, Smartphone, ShieldCheck, HelpCircle, Volume2, VolumeX, Sparkles, Check, Vibrate } from 'lucide-react';
+import { fmtRupee } from '../lib/format';
+import { Download, Archive, Trash2, Upload, X, Tag, Smartphone, ShieldCheck, HelpCircle, Volume2, VolumeX, Sparkles, Check, Vibrate, Target, PlusCircle } from 'lucide-react';
 
 const RAISED    = '7px 7px 16px rgba(163,177,198,0.55), -7px -7px 16px rgba(255,255,255,0.85)';
 const RAISED_SM = '5px 5px 12px rgba(163,177,198,0.55), -5px -5px 12px rgba(255,255,255,0.85)';
@@ -54,6 +56,11 @@ export function SettingsView() {
     const [txns, batches] = await Promise.all([db.transactions.count(), db.importBatches.toArray()]);
     return { txns, batches };
   }, []);
+  const budgets = useLiveQuery(() => db.budgets.toArray(), []) ?? [];
+
+  // Budget form state
+  const [budgetCat, setBudgetCat] = useState<string>(CATEGORIES[0]);
+  const [budgetAmt, setBudgetAmt] = useState('');
 
   const [kw,  setKw]  = useState('');
   const [cat, setCat] = useState<string>(CATEGORIES[0]);
@@ -243,6 +250,85 @@ export function SettingsView() {
         ) : (
           <div style={{ background: BASE, borderRadius: 16, boxShadow: INSET, padding: '1rem', textAlign: 'center' }}>
             <span className="text-xs font-medium" style={{ color: H3 }}>No custom rules defined yet.</span>
+          </div>
+        )}
+      </SectionCard>
+
+      {/* ── Monthly Budgets ── */}
+      <SectionCard>
+        <SectionHeader
+          icon={<Target size={17} strokeWidth={2} style={{ color: H2 }} />}
+          title="Monthly budgets"
+          sub="Set per-category spending caps"
+        />
+
+        {/* Add / edit budget row */}
+        <div className="flex gap-2 mb-3">
+          <select
+            value={budgetCat}
+            onChange={(e) => setBudgetCat(e.target.value)}
+            style={{ ...inputSt, flex: 1, minWidth: 0 }}
+            className="focus:outline-none"
+          >
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat} style={{ background: BASE }}>{cat}</option>
+            ))}
+          </select>
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="₹ amount"
+            value={budgetAmt}
+            onChange={(e) => setBudgetAmt(e.target.value)}
+            style={{ ...inputSt, width: 110 }}
+            className="focus:outline-none"
+          />
+          <button
+            data-sound="success"
+            onClick={async () => {
+              const amt = parseFloat(budgetAmt);
+              if (!isFinite(amt) || amt <= 0) { toast('Enter a valid amount', 'error'); return; }
+              await setBudget(budgetCat, amt);
+              setBudgetAmt('');
+              playSound('success');
+              toast(`Budget set for ${budgetCat}`, 'success');
+            }}
+            style={{
+              background: ACC, borderRadius: 9999, border: 'none',
+              width: 42, height: 42, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', flexShrink: 0, cursor: 'pointer',
+              boxShadow: '4px 4px 10px rgba(26,158,117,0.35), -2px -2px 6px rgba(255,255,255,0.5)'
+            }}
+            aria-label="Set budget"
+          >
+            <PlusCircle size={18} color="#fff" strokeWidth={2.3} />
+          </button>
+        </div>
+
+        {/* Budget list */}
+        {budgets.length > 0 ? (
+          <div className="space-y-2">
+            {budgets.map((b) => (
+              <div key={b.id} style={{ background: BASE, borderRadius: 14, boxShadow: RAISED_SM, padding: '10px 14px' }}
+                className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold truncate" style={{ color: H1 }}>{b.category}</p>
+                  <p className="text-[11px] font-semibold" style={{ color: ACC }}>{fmtRupee(b.amount)} / month</p>
+                </div>
+                <button
+                  data-sound="delete"
+                  onClick={async () => { await deleteBudget(b.category); toast('Budget removed', 'success'); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                  aria-label="Remove budget"
+                >
+                  <X size={15} color="#dc2626" strokeWidth={2.5} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ background: BASE, borderRadius: 14, boxShadow: INSET, padding: '1rem', textAlign: 'center' }}>
+            <span className="text-xs font-medium" style={{ color: H3 }}>No budgets set yet. Add one above.</span>
           </div>
         )}
       </SectionCard>

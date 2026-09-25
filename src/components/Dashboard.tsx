@@ -8,7 +8,8 @@ import { BarChart } from './BarChart';
 import { HeatmapChart } from './HeatmapChart';
 import { detectRecurring } from '../lib/subscriptions';
 import { playSound } from '../lib/sound';
-import { Wallet, TrendingDown, TrendingUp, Upload, ShieldCheck, Store, Repeat, PiggyBank } from 'lucide-react';
+import { Wallet, TrendingDown, TrendingUp, Upload, ShieldCheck, Store, Repeat, PiggyBank, AlertTriangle } from 'lucide-react';
+import { ExportSummaryButton } from './ExportSummary';
 
 const RAISED    = '7px 7px 16px rgba(163,177,198,0.55), -7px -7px 16px rgba(255,255,255,0.85)';
 const RAISED_SM = '5px 5px 12px rgba(163,177,198,0.55), -5px -5px 12px rgba(255,255,255,0.85)';
@@ -79,7 +80,8 @@ function TappableCard({
 }
 
 export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
-  const txns = useLiveQuery(() => db.transactions.orderBy('ts').toArray(), []);
+  const txns    = useLiveQuery(() => db.transactions.orderBy('ts').toArray(), []);
+  const budgets = useLiveQuery(() => db.budgets.toArray(), []) ?? [];
 
   /* Dial selection: -1 = nothing highlighted */
   const [dialSel, setDialSel] = useState<number>(-1);
@@ -249,6 +251,27 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
 
   /* ── Recurring charges ── */
   const recurring = detectRecurring(active);
+
+  /* ── Budget alerts ── */
+  const budgetAlerts = budgets
+    .map((b) => {
+      const spentInCat = active
+        .filter((t) => t.type === 'debit' && !t.failed && monthKey(t.date) === thisMon && t.category === b.category)
+        .reduce((s, t) => s + t.amount, 0);
+      const pct = b.amount > 0 ? Math.round((spentInCat / b.amount) * 100) : 0;
+      return { category: b.category, budget: b.amount, spent: spentInCat, pct };
+    })
+    .filter((a) => a.pct >= 75)
+    .sort((a, b) => b.pct - a.pct);
+
+  /* ── Budget progress bars for dashboard ── */
+  const budgetProgress = budgets.map((b) => {
+    const spentInCat = active
+      .filter((t) => t.type === 'debit' && !t.failed && monthKey(t.date) === thisMon && t.category === b.category)
+      .reduce((s, t) => s + t.amount, 0);
+    const pct = b.amount > 0 ? Math.min(100, Math.round((spentInCat / b.amount) * 100)) : 0;
+    return { category: b.category, budget: b.amount, spent: spentInCat, pct };
+  }).sort((a, b) => b.pct - a.pct);
 
   const MUTED_SEGS = ['#94a3b8', '#64748b', '#b0bec5', '#78909c', '#90a4ae'];
 
@@ -477,6 +500,74 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
         )}
       </div>
 
+      {/* ── Spending Alerts ── */}
+      {budgetAlerts.length > 0 && (
+        <div style={{ background: BASE, borderRadius: 26, boxShadow: RAISED, padding: '1.25rem' }}>
+          <div className="flex items-center gap-2.5 mb-3">
+            <Icon16 size={34}><AlertTriangle size={15} color="#f59e0b" strokeWidth={2.2} /></Icon16>
+            <h3 className="text-sm font-bold" style={{ color: H1 }}>Budget alerts</h3>
+          </div>
+          <div className="space-y-2">
+            {budgetAlerts.map((a) => (
+              <div key={a.category} style={{
+                background: BASE, borderRadius: 14,
+                boxShadow: a.pct >= 100 ? `inset 3px 3px 7px rgba(220,38,38,0.18), inset -3px -3px 7px rgba(255,255,255,0.85)` : RAISED_SM,
+                padding: '10px 14px'
+              }}>
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="font-bold" style={{ color: a.pct >= 100 ? '#dc2626' : H1 }}>{a.category}</span>
+                  <span className="font-extrabold tabular-nums" style={{ color: a.pct >= 100 ? '#dc2626' : '#f59e0b' }}>
+                    {a.pct}% used
+                  </span>
+                </div>
+                <div style={{ background: BASE, borderRadius: 9999, boxShadow: INSET_SM, height: 6 }}>
+                  <div style={{
+                    height: '100%', borderRadius: 9999,
+                    width: `${Math.min(100, a.pct)}%`,
+                    background: a.pct >= 100 ? '#dc2626' : '#f59e0b',
+                    transition: 'width 0.4s ease'
+                  }} />
+                </div>
+                <p className="text-[10px] mt-1.5 font-medium" style={{ color: H3 }}>
+                  {fmtRupee(a.spent)} of {fmtRupee(a.budget)} budget
+                  {a.pct >= 100 ? ' — limit exceeded!' : ` — ${fmtRupee(a.budget - a.spent)} remaining`}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Budget Progress ── */}
+      {budgetProgress.length > 0 && (
+        <div style={{ background: BASE, borderRadius: 30, boxShadow: RAISED, padding: '1.5rem' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold" style={{ color: H1 }}>Monthly budgets</h3>
+            <span className="text-[11px] font-semibold" style={{ color: H3 }}>This month</span>
+          </div>
+          <div className="space-y-3.5">
+            {budgetProgress.map((b) => (
+              <div key={b.category}>
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="font-semibold" style={{ color: H1 }}>{b.category}</span>
+                  <span className="tabular-nums font-bold" style={{ color: b.pct >= 100 ? '#dc2626' : b.pct >= 75 ? '#f59e0b' : H2 }}>
+                    {fmtRupee(b.spent)} / {fmtRupee(b.budget)}
+                  </span>
+                </div>
+                <div style={{ background: BASE, borderRadius: 9999, boxShadow: INSET_SM, height: 8 }}>
+                  <div style={{
+                    height: '100%', borderRadius: 9999,
+                    width: `${b.pct}%`,
+                    background: b.pct >= 100 ? '#dc2626' : b.pct >= 75 ? '#f59e0b' : ACC,
+                    transition: 'width 0.5s ease'
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Savings Rate ── */}
       {savingsRate !== null && (
         <TappableCard sound="success" style={{ borderRadius: 26, boxShadow: RAISED_SM, padding: '1.25rem' }}>
@@ -560,6 +651,20 @@ export function Dashboard({ onNavigate }: { onNavigate: (t: TabId) => void }) {
           </div>
         </div>
       )}
+
+      {/* ── Export Summary ── */}
+      <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 8 }}>
+        <ExportSummaryButton
+          data={{
+            spent,
+            received,
+            savingsRate,
+            topCategory: segments[0]?.label ?? null,
+            topCategoryAmount: segments[0]?.value ?? 0,
+            txnCount: active.length,
+          }}
+        />
+      </div>
 
     </div>
   );
