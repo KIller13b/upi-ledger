@@ -40,32 +40,26 @@ function getIOSSwitch(): HTMLInputElement | null {
   return el;
 }
 
-function iosHaptic(times: number) {
-  const el = getIOSSwitch();
-  if (!el) return;
-  for (let i = 0; i < times; i++) {
-    setTimeout(() => { try { el.click(); } catch { /* ignore */ } }, i * 80);
-  }
-}
 
 function hasVibrate(): boolean {
   return typeof navigator !== 'undefined' &&
     typeof (navigator as unknown as Record<string, unknown>).vibrate === 'function';
 }
 
-/** Fire haptic feedback — works on Android (vibrate API) and iOS (switch trick) */
+/** Fire haptic feedback — works on Android (vibrate API) and iOS (switch trick).
+ *  The FIRST iOS click is always synchronous — must be called within a user gesture. */
 export function triggerRawHaptic(androidPattern: number | number[], iosTaps: number) {
   if (hasVibrate()) {
     try { navigator.vibrate(androidPattern); } catch { /* ignore */ }
   } else {
-    iosHaptic(iosTaps);
+    // First click must be synchronous — setTimeout loses WebKit gesture context
+    const el = getIOSSwitch();
+    if (!el) return;
+    try { el.click(); } catch { /* ignore */ }
+    for (let i = 1; i < iosTaps; i++) {
+      setTimeout(() => { try { el.click(); } catch { /* ignore */ } }, i * 100);
+    }
   }
-}
-
-function vibrate(type: SoundType) {
-  if (!hapticsEnabled) return;
-  const p = HAPTIC_PATTERNS[type];
-  triggerRawHaptic(p.android, p.iosTaps);
 }
 
 // Load preferences from localStorage
@@ -129,9 +123,6 @@ function mkCompressor(ctx: AudioContext): DynamicsCompressorNode {
  * Also triggers the matching haptic vibration pattern via the Vibration API.
  */
 export function playSound(type: SoundType = 'tap'): void {
-  // Fire haptics immediately — independent of whether audio is available
-  vibrate(type);
-
   if (!soundEnabled) return;
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -265,7 +256,24 @@ export function initSoundListener(): () => void {
     }
 
     const customSound = interactive.getAttribute('data-sound') as SoundType | null;
-    playSound(customSound || 'tap');
+    const soundType   = (customSound || 'tap') as SoundType;
+
+    // ── Haptics first, synchronously in the gesture handler ──────────────────
+    // This is critical for iOS: the WebKit user-gesture window closes as soon
+    // as this call stack ends. Any async path (setTimeout, Promise) loses it.
+    if (hapticsEnabled) {
+      const p = HAPTIC_PATTERNS[soundType];
+      if (hasVibrate()) {
+        try { navigator.vibrate(p.android); } catch { /* ignore */ }
+      } else {
+        // iOS switch trick — synchronous click right here
+        const el = getIOSSwitch();
+        if (el) { try { el.click(); } catch { /* ignore */ } }
+      }
+    }
+
+    // ── Sound (can be async) ─────────────────────────────────────────────────
+    playSound(soundType);
   };
 
   window.addEventListener('pointerdown', handlePointerDown, { passive: true });
