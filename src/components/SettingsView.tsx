@@ -6,7 +6,7 @@ import { CATEGORIES } from '../lib/categories';
 import { exportCsv, exportBackup, restoreBackup, wipeAll } from '../lib/export';
 import { toast } from '../lib/toast';
 import { setBudget, deleteBudget } from '../lib/budgets';
-import { isSoundEnabled, setSoundEnabled, isHapticsEnabled, setHapticsEnabled, playSound } from '../lib/sound';
+import { isSoundEnabled, setSoundEnabled, isHapticsEnabled, setHapticsEnabled, playSound, triggerRawHaptic } from '../lib/sound';
 import { fmtRupee } from '../lib/format';
 import { Download, Archive, Trash2, Upload, X, Tag, Smartphone, ShieldCheck, HelpCircle, Volume2, VolumeX, Sparkles, Check, Vibrate, Target, PlusCircle } from 'lucide-react';
 
@@ -141,8 +141,8 @@ export function SettingsView() {
               <p className="text-xs font-bold" style={{ color: H1 }}>Haptic Feedback</p>
               <p className="text-[11px] font-medium" style={{ color: H3 }}>
                 {typeof (navigator as unknown as Record<string, unknown>)?.vibrate === 'function'
-                  ? 'Vibration API supported on this device ✓'
-                  : '⚠ Not supported on iOS / this browser'}
+                  ? 'Android: Vibration API supported ✓'
+                  : 'iOS: using native switch haptic trick'}
               </p>
             </div>
           </div>
@@ -180,19 +180,15 @@ export function SettingsView() {
           </p>
           <div className="flex flex-wrap gap-2">
             {([
-              { label: 'Tap', pattern: 200 },
-              { label: 'Pop', pattern: 200 },
-              { label: 'Double', pattern: [150, 80, 150] },
-              { label: 'SOS 🆘', pattern: [100,80,100,80,100, 200, 300,80,300,80,300, 200, 100,80,100,80,100] },
-            ] as { label: string; pattern: number | number[] }[]).map(({ label, pattern }) => (
+              { label: 'Tap',     pattern: 200,              iosTaps: 1 },
+              { label: 'Double',  pattern: [150, 80, 150],   iosTaps: 2 },
+              { label: 'Success', pattern: [150, 100, 250],  iosTaps: 2 },
+              { label: 'SOS 🆘',  pattern: [100,80,100,80,100,200,300,80,300,80,300,200,100,80,100,80,100], iosTaps: 9 },
+            ] as { label: string; pattern: number | number[]; iosTaps: number }[]).map(({ label, pattern, iosTaps }) => (
               <button
                 key={label}
                 onClick={() => {
-                  if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate(pattern);
-                  } else {
-                    toast('Vibration API not supported on this device/browser', 'error');
-                  }
+                  triggerRawHaptic(pattern, iosTaps);
                 }}
                 style={{
                   background: BASE, borderRadius: 9999, boxShadow: RAISED_SM,

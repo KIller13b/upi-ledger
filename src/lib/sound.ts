@@ -1,4 +1,4 @@
-// Web Audio API tactile sound synthesizer + Web Vibration API haptics.
+// Web Audio API sound synthesizer + haptics (Android + iOS).
 // Operates 100% offline with zero external audio assets.
 
 type SoundType = 'tap' | 'pop' | 'success' | 'delete' | 'toggle';
@@ -13,19 +13,59 @@ const HAPTICS_STORAGE_KEY = 'upi_haptics_enabled';
 // ── Haptics state ─────────────────────────────────────────────────────────────
 let hapticsEnabled = true;
 
-// Vibration patterns per sound type — maxed to practical ceiling of Web Vibration API
-const HAPTIC_PATTERNS: Record<SoundType, number | number[]> = {
-  tap:     200,                    // solid strong tick
-  pop:     [200],                  // heavy punch
-  success: [150, 100, 250],        // strong double-beat confirm
-  delete:  [500],                  // full deep rumble
-  toggle:  [150, 80, 150],         // powerful double-click
+// Vibration patterns — Android uses ms durations, iOS uses tap count
+const HAPTIC_PATTERNS: Record<SoundType, { android: number | number[]; iosTaps: number }> = {
+  tap:     { android: 200,             iosTaps: 1 },
+  pop:     { android: 200,             iosTaps: 1 },
+  success: { android: [150, 100, 250], iosTaps: 2 },
+  delete:  { android: 500,             iosTaps: 3 },
+  toggle:  { android: [150, 80, 150],  iosTaps: 2 },
 };
 
-function vibrate(pattern: number | number[]) {
+// ── iOS hidden-switch haptic trick ────────────────────────────────────────────
+// WebKit fires native haptic feedback when an <input switch> is toggled.
+// We programmatically click a hidden one on every haptic event.
+let _iosSwitch: HTMLInputElement | null = null;
+
+function getIOSSwitch(): HTMLInputElement | null {
+  if (typeof document === 'undefined') return null;
+  if (_iosSwitch) return _iosSwitch;
+  const el = document.createElement('input');
+  el.type = 'checkbox';
+  el.setAttribute('switch', '');         // WebKit-specific attribute
+  el.style.cssText =
+    'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+  document.body.appendChild(el);
+  _iosSwitch = el;
+  return el;
+}
+
+function iosHaptic(times: number) {
+  const el = getIOSSwitch();
+  if (!el) return;
+  for (let i = 0; i < times; i++) {
+    setTimeout(() => { try { el.click(); } catch { /* ignore */ } }, i * 80);
+  }
+}
+
+function hasVibrate(): boolean {
+  return typeof navigator !== 'undefined' &&
+    typeof (navigator as unknown as Record<string, unknown>).vibrate === 'function';
+}
+
+/** Fire haptic feedback — works on Android (vibrate API) and iOS (switch trick) */
+export function triggerRawHaptic(androidPattern: number | number[], iosTaps: number) {
+  if (hasVibrate()) {
+    try { navigator.vibrate(androidPattern); } catch { /* ignore */ }
+  } else {
+    iosHaptic(iosTaps);
+  }
+}
+
+function vibrate(type: SoundType) {
   if (!hapticsEnabled) return;
-  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
-  try { navigator.vibrate(pattern); } catch { /* silently ignore */ }
+  const p = HAPTIC_PATTERNS[type];
+  triggerRawHaptic(p.android, p.iosTaps);
 }
 
 // Load preferences from localStorage
@@ -90,7 +130,7 @@ function mkCompressor(ctx: AudioContext): DynamicsCompressorNode {
  */
 export function playSound(type: SoundType = 'tap'): void {
   // Fire haptics immediately — independent of whether audio is available
-  vibrate(HAPTIC_PATTERNS[type]);
+  vibrate(type);
 
   if (!soundEnabled) return;
   const ctx = getAudioContext();
