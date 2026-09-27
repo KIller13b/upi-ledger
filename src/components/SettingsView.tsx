@@ -139,7 +139,11 @@ export function SettingsView() {
             </span>
             <div>
               <p className="text-xs font-bold" style={{ color: H1 }}>Haptic Feedback</p>
-              <p className="text-[11px] font-medium" style={{ color: H3 }}>Vibration on taps, swipes and confirmations</p>
+              <p className="text-[11px] font-medium" style={{ color: H3 }}>
+                {typeof (navigator as unknown as Record<string, unknown>)?.vibrate === 'function'
+                  ? 'Vibration API supported on this device ✓'
+                  : '⚠ Not supported on iOS / this browser'}
+              </p>
             </div>
           </div>
           <button
@@ -169,11 +173,45 @@ export function SettingsView() {
           </button>
         </div>
 
-        {/* Preview row */}
+        {/* Haptics test row — always visible, bypasses hapticsEnabled flag */}
+        <div style={{ background: BASE, borderRadius: 16, boxShadow: INSET_SM, padding: '10px 14px', marginTop: 10 }}>
+          <p className="text-[11px] font-semibold mb-2.5" style={{ color: H2 }}>
+            🔬 Haptics tester (fires even if toggle is OFF):
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {([
+              { label: 'Tap', pattern: 200 },
+              { label: 'Pop', pattern: 200 },
+              { label: 'Double', pattern: [150, 80, 150] },
+              { label: 'SOS 🆘', pattern: [100,80,100,80,100, 200, 300,80,300,80,300, 200, 100,80,100,80,100] },
+            ] as { label: string; pattern: number | number[] }[]).map(({ label, pattern }) => (
+              <button
+                key={label}
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate(pattern);
+                  } else {
+                    toast('Vibration API not supported on this device/browser', 'error');
+                  }
+                }}
+                style={{
+                  background: BASE, borderRadius: 9999, boxShadow: RAISED_SM,
+                  border: 'none', padding: '5px 14px', fontSize: '0.68rem',
+                  fontWeight: 700, color: label.includes('SOS') ? '#dc2626' : H2,
+                  cursor: 'pointer'
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sound preview row */}
         {soundOn && (
-          <div style={{ background: BASE, borderRadius: 16, boxShadow: INSET_SM, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+          <div style={{ background: BASE, borderRadius: 16, boxShadow: INSET_SM, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
             <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: H2 }}>
-              <Sparkles size={12} style={{ color: ACC }} /> Preview:
+              <Sparkles size={12} style={{ color: ACC }} /> Sound preview:
             </span>
             <div className="flex gap-2">
               {(['tap', 'pop', 'success'] as const).map((s) => (
