@@ -180,15 +180,15 @@ export function SettingsView() {
           </p>
           <div className="flex flex-wrap gap-2">
             {([
-              { label: 'Tap',     pattern: 200,              iosTaps: 1 },
-              { label: 'Double',  pattern: [150, 80, 150],   iosTaps: 2 },
-              { label: 'Success', pattern: [150, 100, 250],  iosTaps: 2 },
-              { label: 'SOS 🆘',  pattern: [100,80,100,80,100,200,300,80,300,80,300,200,100,80,100,80,100], iosTaps: 9 },
-            ] as { label: string; pattern: number | number[]; iosTaps: number }[]).map(({ label, pattern, iosTaps }) => (
+              { label: 'Light',   pattern: 200,              preset: 'light'   },
+              { label: 'Medium',  pattern: [150, 80, 150],   preset: 'medium'  },
+              { label: 'Heavy',   pattern: [150, 100, 250],  preset: 'heavy'   },
+              { label: 'SOS 🆘',  pattern: [100,80,100,80,100,200,300,80,300,80,300,200,100,80,100,80,100], preset: 'buzz' },
+            ] as { label: string; pattern: number | number[]; preset: string }[]).map(({ label, pattern, preset }) => (
               <button
                 key={label}
                 onClick={() => {
-                  triggerRawHaptic(pattern, iosTaps);
+                  triggerRawHaptic(pattern, preset);
                 }}
                 style={{
                   background: BASE, borderRadius: 9999, boxShadow: RAISED_SM,

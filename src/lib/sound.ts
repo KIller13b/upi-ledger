@@ -13,52 +13,34 @@ const HAPTICS_STORAGE_KEY = 'upi_haptics_enabled';
 // ── Haptics state ─────────────────────────────────────────────────────────────
 let hapticsEnabled = true;
 
-// Vibration patterns — Android uses ms durations, iOS uses tap count
-const HAPTIC_PATTERNS: Record<SoundType, { android: number | number[]; iosTaps: number }> = {
-  tap:     { android: 200,             iosTaps: 1 },
-  pop:     { android: 200,             iosTaps: 1 },
-  success: { android: [150, 100, 250], iosTaps: 2 },
-  delete:  { android: 500,             iosTaps: 3 },
-  toggle:  { android: [150, 80, 150],  iosTaps: 2 },
+// Haptic patterns — android = vibrate duration(s), preset = web-haptics preset name
+const HAPTIC_PATTERNS: Record<SoundType, { android: number | number[]; preset: string }> = {
+  tap:     { android: 200,             preset: 'light'   },
+  pop:     { android: 200,             preset: 'medium'  },
+  success: { android: [150, 100, 250], preset: 'success' },
+  delete:  { android: 500,             preset: 'heavy'   },
+  toggle:  { android: [150, 80, 150],  preset: 'medium'  },
 };
 
-// ── iOS hidden-switch haptic trick ────────────────────────────────────────────
-// WebKit fires native haptic feedback when an <input switch> is toggled.
-// We programmatically click a hidden one on every haptic event.
-let _iosSwitch: HTMLInputElement | null = null;
-
-function getIOSSwitch(): HTMLInputElement | null {
-  if (typeof document === 'undefined') return null;
-  if (_iosSwitch) return _iosSwitch;
-  const el = document.createElement('input');
-  el.type = 'checkbox';
-  el.setAttribute('switch', '');         // WebKit-specific attribute
-  el.style.cssText =
-    'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
-  document.body.appendChild(el);
-  _iosSwitch = el;
-  return el;
-}
-
+// ── Haptic engine (Android + iOS) ────────────────────────────────────────────
+// Uses web-haptics library which handles both platforms:
+//   Android → navigator.vibrate()
+//   iOS     → <label>/<input switch> trick; first click is synchronous
+import { WebHaptics } from 'web-haptics';
+const _hapticEngine = new WebHaptics();
 
 function hasVibrate(): boolean {
   return typeof navigator !== 'undefined' &&
     typeof (navigator as unknown as Record<string, unknown>).vibrate === 'function';
 }
 
-/** Fire haptic feedback — works on Android (vibrate API) and iOS (switch trick).
- *  The FIRST iOS click is always synchronous — must be called within a user gesture. */
-export function triggerRawHaptic(androidPattern: number | number[], iosTaps: number) {
+/** Fire haptic feedback. Call synchronously within a user gesture handler. */
+export function triggerRawHaptic(androidPattern: number | number[], preset: string) {
+  // web-haptics auto-detects platform internally
+  void _hapticEngine.trigger(preset);
+  // Belt-and-suspenders native vibrate for Android
   if (hasVibrate()) {
     try { navigator.vibrate(androidPattern); } catch { /* ignore */ }
-  } else {
-    // First click must be synchronous — setTimeout loses WebKit gesture context
-    const el = getIOSSwitch();
-    if (!el) return;
-    try { el.click(); } catch { /* ignore */ }
-    for (let i = 1; i < iosTaps; i++) {
-      setTimeout(() => { try { el.click(); } catch { /* ignore */ } }, i * 100);
-    }
   }
 }
 
@@ -263,13 +245,7 @@ export function initSoundListener(): () => void {
     // as this call stack ends. Any async path (setTimeout, Promise) loses it.
     if (hapticsEnabled) {
       const p = HAPTIC_PATTERNS[soundType];
-      if (hasVibrate()) {
-        try { navigator.vibrate(p.android); } catch { /* ignore */ }
-      } else {
-        // iOS switch trick — synchronous click right here
-        const el = getIOSSwitch();
-        if (el) { try { el.click(); } catch { /* ignore */ } }
-      }
+      triggerRawHaptic(p.android, p.preset);
     }
 
     // ── Sound (can be async) ─────────────────────────────────────────────────
