@@ -23,24 +23,57 @@ const HAPTIC_PATTERNS: Record<SoundType, { android: number | number[]; preset: s
 };
 
 // ── Haptic engine (Android + iOS) ────────────────────────────────────────────
-// Uses web-haptics library which handles both platforms:
-//   Android → navigator.vibrate()
-//   iOS     → <label>/<input switch> trick; first click is synchronous
-import { WebHaptics } from 'web-haptics';
-const _hapticEngine = new WebHaptics();
+// Android: navigator.vibrate()
+// iOS: <label>+<input switch> trick.
+//   IMPORTANT: element must be rendered (opacity > 0, not display:none)
+//   or WebKit will not grant haptic access to programmatic clicks.
+
+let _hapticLabel: HTMLLabelElement | null = null;
+
+
+function ensureHapticDOM(): HTMLLabelElement | null {
+  if (_hapticLabel) return _hapticLabel;
+  if (typeof document === 'undefined') return null;
+
+  const id = 'upi-haptic-switch';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.setAttribute('switch', '');   // WebKit switch attribute
+  input.id = id;
+  // Must be rendered (not display:none) for WebKit gesture to fire haptic.
+  // opacity:0.001 = technically visible, practically invisible.
+  input.style.cssText =
+    'position:fixed;top:0;left:0;width:1px;height:1px;' +
+    'opacity:0.001;pointer-events:none;z-index:-1;';
+  document.body.appendChild(input);
+
+  const label = document.createElement('label');
+  label.htmlFor = id;
+  label.style.cssText =
+    'position:fixed;top:0;left:0;width:1px;height:1px;' +
+    'opacity:0.001;pointer-events:none;z-index:-1;';
+  document.body.appendChild(label);
+
+  _hapticLabel = label;
+
+  return label;
+}
 
 function hasVibrate(): boolean {
   return typeof navigator !== 'undefined' &&
     typeof (navigator as unknown as Record<string, unknown>).vibrate === 'function';
 }
 
-/** Fire haptic feedback. Call synchronously within a user gesture handler. */
-export function triggerRawHaptic(androidPattern: number | number[], preset: string) {
-  // web-haptics auto-detects platform internally
-  void _hapticEngine.trigger(preset);
-  // Belt-and-suspenders native vibrate for Android
+/** Fire haptic. MUST be called synchronously within a user gesture (pointerdown/click). */
+export function triggerRawHaptic(androidPattern: number | number[], _preset: string) {
   if (hasVibrate()) {
+    // Android: native vibration API
     try { navigator.vibrate(androidPattern); } catch { /* ignore */ }
+  } else {
+    // iOS: click the label associated with the switch — WebKit fires native haptic
+    // This click MUST be synchronous in the call stack of the user gesture.
+    const label = ensureHapticDOM();
+    if (label) { try { label.click(); } catch { /* ignore */ } }
   }
 }
 
